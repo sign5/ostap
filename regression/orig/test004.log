@@ -1,0 +1,3 @@
+Matching "digits" against ""; should match
+  stream: ...;
+  args  : d=[]
