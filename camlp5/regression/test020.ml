@@ -2,7 +2,7 @@ open Ostap
 open Combinators
 open Matcher 
 open Printf 
-(*open Fix*)
+open Fix
 
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
@@ -15,19 +15,6 @@ class lexer s =
     method getCONST = self#get "constant"   const
 
   end
-  
-let memo = 
-  fun p (s : lexer) -> s#memoize p
-
-let fix p s = 
-  let x' = ref None in  
-  let rec fix p s = p (fix p) s in
-  let p x s = 
-    match !x' with
-    | None   -> x' := Some (fun s -> memo x s); p x s 
-    | Some x -> p x s 
-  in
-  fix p s
 
 module Test0 = struct 
   let e p s = fix (fun e -> ostap(x:e "+" y:e {`Add (x, y)} | p {`Var})) s
