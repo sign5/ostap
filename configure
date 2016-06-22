@@ -3011,7 +3011,6 @@ $as_echo_n "checking for C compiler default output file name... " >&6; }
 $as_echo "$ac_file" >&6; }
 ac_exeext=$ac_cv_exeext
 
-_AC_COMPILER_EXEEXT_WORKS
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for suffix of executables" >&5
 $as_echo_n "checking for suffix of executables... " >&6; }
 if { { ac_try="$ac_link"
@@ -4198,10 +4197,66 @@ $as_echo "$as_me: WARNING: Please, visit http://oops.tepkom.ru/projects/checked"
 fi
 
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for GT (pa_gt.cmo)" >&5
+$as_echo_n "checking for GT (pa_gt.cmo)... " >&6; }
+cat > conftest.ml <<EOF
+let _ = 3
+EOF
+if $CAMLP5O pa_gt.cmo $PARSER_INCLUDES conftest.ml > /dev/null 2>&1 ; then
+    { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
+$as_echo "found" >&6; }
+else
+    unset found
+    if ! test "$use_findlib" = no ; then
+	if check_inc=`$OCAMLFIND query -i-format GT 2>/dev/null`; then
+	    if $CAMLP5R $PARSER_INCLUDES $check_inc conftest.ml > /dev/null 2>&1 ; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: adding $check_inc" >&5
+$as_echo "adding $check_inc" >&6; }
+		PARSER_INCLUDES="$PARSER_INCLUDES $check_inc"
+		found=yes
+	    fi
+	fi
+    fi
+    if ! test "$found"; then
+	if test -n "$SITELIBDIR"; then
+	    dirs="+camlp5 ../ostap/camlp5 $SITELIBDIR/camlp5 $OCAMLLIB/camlp5"
+	else
+	    dirs="+camlp5 ../ostap/camlp5 $OCAMLLIB/camlp5"
+	fi
+	for check_dir in $dirs; do
+	    builddir=`pwd`
+	    case $check_dir in
+		[\\/+]*) ;;
+		[[:alpha:]]:\\*) ;;
+		*) check_dir="$builddir/$check_dir";;
+	    esac
+	    if $CAMLP5R -I $check_dir conftest.ml > /dev/null 2>&1 ; then
+		found=yes
+		break
+	    fi
+	done
+	if test "$found" ; then
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: adding -I $check_dir" >&5
+$as_echo "adding -I $check_dir" >&6; }
+	    PARSER_INCLUDES="$PARSER_INCLUDES -I $check_dir"
+	else
+	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+$as_echo "not found" >&6; }
+	    if ! test -z "http://oops.math.spbu.ru/projects/ostap"; then
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit http://oops.math.spbu.ru/projects/ostap" >&5
+$as_echo "$as_me: WARNING: Please, visit http://oops.math.spbu.ru/projects/ostap" >&2;}
+	    fi
+	    as_fn_error $? "Required module GT not found" "$LINENO" 5
+	fi
+    fi
 fi
 
 
-for module in View; do
+
+fi
+
+
+for module in Compare; do
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for typeutil ($module)" >&5
 $as_echo_n "checking for typeutil ($module)... " >&6; }
 
@@ -4240,6 +4295,51 @@ $as_echo "not found" >&6; }
 $as_echo "$as_me: WARNING: Please, visit http://oops.tepkom.ru/projects/typeutil" >&2;}
 		fi
 		as_fn_error $? "Required module $module not found in library typeutil" "$LINENO" 5
+    fi
+done
+
+
+
+
+for module in GT; do
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GT ($module)" >&5
+$as_echo_n "checking for GT ($module)... " >&6; }
+
+    unset META
+    ocaml_compile "GT" "$module" "../generic-transformers/src"
+    if test "$found" ; then
+
+cat > conftest.ml <<EOF
+open $module
+EOF
+		unset CMA
+		if test -f "$META"; then
+		    CMA=`grep "archive(byte)" $META | sed -e 's,[^=]*= *"\(.*\)",\1,g'`
+		fi
+		test -z "$CMA" && CMA="GT.cma"
+		if ! $OCAMLC -o conftest -rectypes $MODULE_INCLUDES $CMA conftest.cmo > /dev/null 2>&1 ; then
+		    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CMA not found" >&5
+$as_echo "$CMA not found" >&6; }
+	    	    if ! test -z "http://oops.math.spbu.ru/projects/checked"; then
+			{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit http://oops.math.spbu.ru/projects/checked" >&5
+$as_echo "$as_me: WARNING: Please, visit http://oops.math.spbu.ru/projects/checked" >&2;}
+	    	    fi
+		    as_fn_error $? "Required library GT not found" "$LINENO" 5
+		else
+		    if ! echo "$EXTRA_CMA" | grep "$CMA" > /dev/null 2>&1 ; then
+			EXTRA_CMA="$EXTRA_CMA $CMA"
+		    fi
+		    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $result" >&5
+$as_echo "$result" >&6; }
+		fi
+    else
+		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
+$as_echo "not found" >&6; }
+		if ! test -z "http://oops.math.spbu.ru/projects/checked"; then
+		    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit http://oops.math.spbu.ru/projects/checked" >&5
+$as_echo "$as_me: WARNING: Please, visit http://oops.math.spbu.ru/projects/checked" >&2;}
+		fi
+		as_fn_error $? "Required module $module not found in library GT" "$LINENO" 5
     fi
 done
 

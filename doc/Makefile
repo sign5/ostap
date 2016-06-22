@@ -48,11 +48,11 @@ CONFIG_CLEAN_FILES =
 SOURCES =
 DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run aclocal-1.9
-AMTAR = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run tar
-AUTOCONF = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run automake-1.9
+ACLOCAL = ${SHELL} /home/db/develop/ostap/config/missing --run aclocal-1.9
+AMTAR = ${SHELL} /home/db/develop/ostap/config/missing --run tar
+AUTOCONF = ${SHELL} /home/db/develop/ostap/config/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/db/develop/ostap/config/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/db/develop/ostap/config/missing --run automake-1.9
 AWK = mawk
 BFLAGS = $(AM_BFLAGS)
 CAMLP4 = camlp4
@@ -77,7 +77,7 @@ ECHO_C =
 ECHO_N = -n
 ECHO_T = 
 EXEEXT = 
-EXTRA_CMA =  typeutil.cma str.cma
+EXTRA_CMA =  typeutil.cma GT.cma str.cma
 HAVE_OCAMLFIND_FALSE = #
 HAVE_OCAMLFIND_TRUE = 
 INSTALL_DATA = ${INSTALL} -m 644
@@ -88,11 +88,11 @@ LIBOBJS =
 LIBS = 
 LOG = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/db/tmp/sandbox/ostap/config/missing --run makeinfo
+MAKEINFO = ${SHELL} /home/db/develop/ostap/config/missing --run makeinfo
 META = 
 MINGW32_FALSE = 
 MINGW32_TRUE = #
-MODULE_INCLUDES =  -I /usr/local/lib/ocaml/4.01.0/typeutil
+MODULE_INCLUDES =  -I /usr/local/lib/ocaml/4.01.0/typeutil -I /usr/local/lib/ocaml/4.01.0/GT
 OCAMLC = ocamlc.opt
 OCAMLDEP = ocamldep
 OCAMLDOC = ocamldoc
@@ -167,7 +167,7 @@ host_vendor = unknown
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = /home/db/tmp/sandbox/ostap/config/install-sh
+install_sh = /home/db/develop/ostap/config/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -203,9 +203,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  doc/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  doc/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --foreign  doc/Makefile
+	  $(AUTOMAKE) --gnu  doc/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
