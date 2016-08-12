@@ -265,7 +265,7 @@ PXFLAGS = $(P5FLAGS)
 CAMLPXLIB = $(CAMLP5LIB)
 
 # bytecode compiling flags
-AM_BFLAGS = $(MODULE_INCLUDES) $(DEBUG) -w x -rectypes
+AM_BFLAGS = $(MODULE_INCLUDES) $(DEBUG) -w x -rectypes -for-pack Ostap
 # native (optimized) compiling flags
 AM_OFLAGS = $(MODULE_INCLUDES) -w x -rectypes -for-pack Ostap
 

@@ -10,7 +10,7 @@ CMO := $(SORTED:.ml=.cmo)
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_checked.cmo pa_log.cmo $(LOG)"
-AM_BFLAGS += -w x -rectypes
+AM_BFLAGS += -w x -rectypes -for-pack Ostap
 AM_OFLAGS += -w x -rectypes -for-pack Ostap
 
 # overwrite some variables
