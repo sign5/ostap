@@ -1,4 +1,4 @@
-(*open Ostap*)
+open Ostap
 open Combinators
 open Matcher 
 open Printf 
