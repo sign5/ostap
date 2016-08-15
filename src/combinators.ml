@@ -114,7 +114,7 @@ let unwrap r f g =
   | Parsed ((x, _), _) -> f x
   | Failed x           -> g x
   
-class t s = 
+class memoStream s = 
   object (this : 'self)
     inherit Matcher.t s
     
@@ -154,9 +154,8 @@ class t s =
               increaseBound (replaceValue table p this#pos r) p this#pos
   end
   
-  
 let memo = 
-  fun p (s : #t) -> s#memoize p
+  fun p (s : #memoStream) -> s#memoize p
 
 let fix p s = 
   let x' = ref None in  

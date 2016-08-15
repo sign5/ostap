@@ -14,7 +14,7 @@ class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
   object (self)
 
-    inherit Combinators.t s
+    inherit Combinators.memoStream s
 
     method skip p c = skip s p c
   end
