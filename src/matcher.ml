@@ -15,7 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
-open Combinators
+open Types
 open String
 open Printf
 open Str

@@ -14,6 +14,8 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+ 
+open Types 
 
 (** Ostap --- a general set of parser combinators. *)
 
@@ -22,38 +24,6 @@
     generally referred to as "The Great Combinator" since the word "combinator" in Russian also means 
     "a swindler", "a sly man" etc.
  *)
-
-(** {2 Main parsing types } *)
-
-(** Type pattern for the result of parsing. Here ['a] --- type of {i parsed value}, ['b] --- type of
-    {i failure reason} (description of parse problem). Result is 
-
-    {ul {- either a parsed value coupled with optional reason designated to denote deferred errors}
-        {- or a failure with optional reason.}
-    }
-    
-    Deferred reasons are those which can be potentially signalled in the future. For example, 
-    parsing the string "A, B" with the rule ("A" "B")? has to return parsed value with deferred failure
-    reason "B expected".
- *)
-type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
-
-(** The type 
-
-    {C [type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag]}
-
-    denotes the result of parsing a stream with a parser. This result is either parsed value of type 
-    ['parsed] and the residual stream of type ['stream], or failure with reason of type ['error].
- *)
-type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
-
-(** The type 
-
-    {C [type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result]}
-
-    corresponds to a parser. Parser takes a stream of type ['stream] and returns result.
- *)
-type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
 
 (** {2 Simple predefined parsers} *)
 
@@ -148,3 +118,43 @@ val altl : ('a, 'b, <add: 'c -> 'c; ..>  as 'c) parse list -> ('a, 'b, 'c) parse
     parsed value or [failed] function to optional reason value.
  *)
 val unwrap : ('stream, 'parsed, 'error) result -> ('parsed -> 'a) -> ('error option -> 'a) -> 'a
+
+(** Inherit this stream implementation to be able to use left recursion in parser definitions. Left recursion support is based on {{:http://link.springer.com/chapter/10.1007%2F978-3-642-33182-4_4} this paper}: 
+*)
+class memoStream :
+  string ->
+  object ('a)
+    val table : ((int * int) * int) list
+    method col : int
+    method coord : Msg.Coord.t
+    method get :
+      string ->
+      Str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method getEOF : ('a, Matcher.Token.t, Reason.t) Types.result
+    method line : int
+    method loc : Msg.Locator.t
+    method look :
+      string -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method memoize :
+      ('a, 'p, 'e) Types.parse -> ('a, 'p, 'e) Types.result
+    method pos : int
+    method prefix : int -> string
+    method regexp :
+      string -> string -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method skip :
+      int ->
+      Msg.Coord.t -> [ `Failed of Msg.t | `Skipped of int * Msg.Coord.t ]
+  end
+
+(** Wrap left recursive calls in your parser definition in [memo] function to be able to process them.
+*)
+val memo :
+  (#memoStream as 'a, 'b, 'c) Types.parse ->
+  'a -> ('a, 'b, 'c) Types.result
+  
+(** Fix point combinator to support left recursion in the parser implementation.
+*)  
+val fix :
+  ((#memoStream as 'a, 'b, 'c) Types.parse ->
+   'a -> ('a, 'b, 'c) Types.result) ->
+  'a -> ('a, 'b, 'c) Types.result

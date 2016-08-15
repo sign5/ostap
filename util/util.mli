@@ -15,6 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
+open Types
 open Combinators
 
 (** Predefined parsing utilities. *)
@@ -25,12 +26,12 @@ open Combinators
     and folds it with function [f] and initial value [x]. Note that inside Ostap syntax extension the notation 
     [listByWith[delim][item][f][x]] should be used.
  *)
-val listByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
-                 ('a, 'd, 'c) Combinators.parse ->
+val listByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Types.parse ->
+                 ('a, 'd, 'c) Types.parse ->
                  ('e -> 'd -> 'e) -> 
                  'e -> 
                  'a ->
-                 ('a, 'e, 'c) Combinators.result 
+                 ('a, 'e, 'c) Types.result 
 
 (** [listBy s delim item] parses a non-empty list of [item]s delimited by [delim] from a stream [s].
      Note that inside Ostap syntax extension the notation [listBy[delim][item]] should be used.
@@ -38,7 +39,7 @@ val listByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
 val listBy : ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> 
              ('a, 'd, 'c) parse -> 
              'a -> 
-             ('a, 'd list, 'c) Combinators.result
+             ('a, 'd list, 'c) Types.result
 
 (** [list s item] parses a non-empty list delimited by commas. Inside Ostap syntax extensions this should
      be used in the form [list[item]].
@@ -50,32 +51,32 @@ val list : ('a, 'd, 'c) parse ->
 (** [listWith s item f x] parses a non-empty list delimited by commas and folds it with the function [f] and initial
     value [x]. Inside Ostap syntax extensions this should be used in the form [listWith[item][f][x]].
  *)
-val listWith : ('a, 'd, 'c) Combinators.parse -> 
+val listWith : ('a, 'd, 'c) Types.parse -> 
                ('e -> 'd -> 'e) -> 'e -> 
-               (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
-               ('a, 'e, 'c) Combinators.result
+               (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Types.result; .. > as 'a) ->  
+               ('a, 'e, 'c) Types.result
 
 (** [list0*] functions are that analoguous to [list*] but parse possibly empty lists. *)
-val list0ByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.parse ->
-                  ('a, 'd, 'c) Combinators.parse ->
+val list0ByWith : ('a, 'b, < add : 'c -> 'c; .. > as 'c) Types.parse ->
+                  ('a, 'd, 'c) Types.parse ->
                   ('e -> 'd -> 'e) -> 
                   'e -> 
                   'a ->
-                  ('a, 'e, 'c) Combinators.result 
+                  ('a, 'e, 'c) Types.result 
 
 val list0By : ('a, 'b, < add : 'c -> 'c; .. > as 'c) parse -> 
               ('a, 'd, 'c) parse -> 
               'a ->
-              ('a, 'd list, 'c) Combinators.result
+              ('a, 'd list, 'c) Types.result
 
-val list0With : ('a, 'd, 'c) Combinators.parse -> 
+val list0With : ('a, 'd, 'c) Types.parse -> 
                 ('e -> 'd -> 'e) -> 
                 'e -> 
-                (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->  
-                ('a, 'e, 'c) Combinators.result
+                (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Types.result; .. > as 'a) ->  
+                ('a, 'e, 'c) Types.result
 
 val list0 : ('a, 'd, 'c) parse -> 
-            (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Combinators.result; .. > as 'a) ->
+            (< look : string -> ('a, 'b, < add : 'c -> 'c; .. > as 'c) Types.result; .. > as 'a) ->
             ('a, 'd list, 'c) result
 
 (** [id x] is just the parser x *)

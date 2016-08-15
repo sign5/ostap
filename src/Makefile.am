@@ -1,7 +1,7 @@
 
 # type in sources here
-SOURCES = pretty.ml prioReorderer.ml bNF3.ml combinators.ml msg.ml reason.ml ostream.ml aSCII.ml regexp.ml deterministic.ml matcher.ml trap.ml
-MLI = pretty.mli prioReorderer.mli bNF3.mli combinators.mli msg.mli reason.mli ostream.mli aSCII.mli regexp.mli deterministic.mli matcher.mli trap.mli
+SOURCES = pretty.ml prioReorderer.ml bNF3.ml types.ml matcher.ml combinators.ml msg.ml reason.ml ostream.ml aSCII.ml regexp.ml deterministic.ml trap.ml
+MLI = pretty.mli prioReorderer.mli bNF3.mli types.mli matcher.mli combinators.mli msg.mli reason.mli ostream.mli aSCII.mli regexp.mli deterministic.mli trap.mli
 
 include $(top_srcdir)/m4/Makefile.am.vars
 
@@ -10,7 +10,7 @@ CMO := $(SORTED:.ml=.cmo)
 
 # OCaml parser call with flags
 AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_checked.cmo pa_log.cmo $(LOG)"
-AM_BFLAGS += -w x -rectypes
+AM_BFLAGS += -w x -rectypes -for-pack Ostap
 AM_OFLAGS += -w x -rectypes -for-pack Ostap
 
 # overwrite some variables
