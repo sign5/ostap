@@ -14,6 +14,8 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
+ 
+open Types 
 
 (** Ostap --- a general set of parser combinators. *)
 
@@ -36,7 +38,7 @@
     parsing the string "A, B" with the rule ("A" "B")? has to return parsed value with deferred failure
     reason "B expected".
  *)
-type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
+
 
 (** The type 
 
@@ -45,7 +47,7 @@ type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
     denotes the result of parsing a stream with a parser. This result is either parsed value of type 
     ['parsed] and the residual stream of type ['stream], or failure with reason of type ['error].
  *)
-type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
+
 
 (** The type 
 
@@ -53,7 +55,7 @@ type ('stream, 'parsed, 'error) result = ('parsed * 'stream, 'error) tag
 
     corresponds to a parser. Parser takes a stream of type ['stream] and returns result.
  *)
-type ('stream, 'parsed, 'error) parse  = 'stream -> ('stream, 'parsed, 'error) result
+
 
 (** {2 Simple predefined parsers} *)
 
@@ -148,3 +150,36 @@ val altl : ('a, 'b, <add: 'c -> 'c; ..>  as 'c) parse list -> ('a, 'b, 'c) parse
     parsed value or [failed] function to optional reason value.
  *)
 val unwrap : ('stream, 'parsed, 'error) result -> ('parsed -> 'a) -> ('error option -> 'a) -> 'a
+
+class t :
+  string ->
+  object ('a)
+    val table : ((int * int) * int) list
+    method col : int
+    method coord : Msg.Coord.t
+    method get :
+      string ->
+      Str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method getEOF : ('a, Matcher.Token.t, Reason.t) Types.result
+    method line : int
+    method loc : Msg.Locator.t
+    method look :
+      string -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method memoize :
+      ('a, 'p, 'e) Types.parse -> ('a, 'p, 'e) Types.result
+    method pos : int
+    method prefix : int -> string
+    method regexp :
+      string -> string -> ('a, Matcher.Token.t, Reason.t) Types.result
+    method skip :
+      int ->
+      Msg.Coord.t -> [ `Failed of Msg.t | `Skipped of int * Msg.Coord.t ]
+  end
+
+val memo :
+  (#t as 'a, 'b, 'c) Types.parse ->
+  'a -> ('a, 'b, 'c) Types.result
+val fix :
+  ((#t as 'a, 'b, 'c) Types.parse ->
+   'a -> ('a, 'b, 'c) Types.result) ->
+  'a -> ('a, 'b, 'c) Types.result

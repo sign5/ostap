@@ -1,15 +1,14 @@
 (*open Ostap*)
-(*open Combinators*)
+open Combinators
 open Matcher 
 open Printf 
-open Fix
 
 class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
   let const = Str.regexp "[0-9]+" in
   object (self)
 
-    inherit MemoParser.t s
+    inherit Combinators.t s
 
     method skip p c = skip s p c
     method getCONST = self#get "constant"   const

@@ -16,12 +16,9 @@
  *)
 
 open Printf
+open Matcher
 open List
-
-type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
-
-type ('a, 'b, 'c) result = ('b * 'a, 'c) tag
-and  ('a, 'b, 'c) parse  = 'a -> ('a, 'b, 'c) result
+open Types
 
 let join = function
   | None   -> fun y -> y
@@ -117,4 +114,57 @@ let unwrap r f g =
   | Parsed ((x, _), _) -> f x
   | Failed x           -> g x
   
+class t s = 
+  object (this : 'self)
+    inherit Matcher.t s
+    
+    val table : ((int * int) * int) list = []
+
+    method memoize : 'p 'e . ('self, 'p, 'e) parse -> ('self, 'p, 'e) result = 
+      fun p -> 
+        let getParsedValue t p pos =
+          let equal (f0, p0) (f1, p1) = f0 == f1 && p0 = p1 in
+          let rec find key tab = 
+            match tab with 
+            | [] -> raise Not_found
+            | (k, v) :: t -> if equal key k 
+                             then v
+                             else find key t
+          in
+          Obj.magic (find (Obj.magic p, pos) t)
+        in
+        let replaceValue t p pos v =
+          ((Obj.magic p, pos), (Obj.magic v)) :: t 
+        in
+        let rec increaseBound t p pos =
+          match p {< table = t >} with
+          | Failed _ -> getParsedValue t p this#pos            
+          | Parsed ((_, s), _) as parsed -> 
+            if s#pos > pos 
+            then increaseBound (replaceValue t p this#pos parsed) p s#pos
+            else getParsedValue t p this#pos
+        in
+        try 
+          getParsedValue table p this#pos           
+        with  
+          Not_found -> 
+            match p {< table = replaceValue table p this#pos (Failed None) >} with
+            | Failed _ as r -> r
+            | Parsed ((b, s'), e) as r ->
+              increaseBound (replaceValue table p this#pos r) p this#pos
+  end
+  
+  
+let memo = 
+  fun p (s : #t) -> s#memoize p
+
+let fix p s = 
+  let x' = ref None in  
+  let rec fix p s = p (fix p) s in
+  let p x s = 
+    match !x' with
+    | None   -> x' := Some (fun s -> memo x s); p x s 
+    | Some x -> p x s 
+  in
+  fix p s
 

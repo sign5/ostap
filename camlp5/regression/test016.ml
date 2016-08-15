@@ -1,5 +1,5 @@
 open Ostap
-open Combinators
+open Types
 open Matcher 
 open Printf 
 
@@ -14,7 +14,7 @@ class lexer s =
   let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
   object (self)
 
-    inherit MemoParser.t s
+    inherit Combinators.t s
 
     method skip p c = skip s p c
   end

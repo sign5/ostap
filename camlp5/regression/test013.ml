@@ -1,5 +1,5 @@
 open Ostap
-open Combinators
+open Types
 open Matcher 
 open Printf 
 
@@ -9,7 +9,7 @@ class lexer s =
   let const = Str.regexp "[0-9]+" in
   object (self)
 
-    inherit MemoParser.t s
+    inherit Combinators.t s
 
     method skip p c = skip s p c
     method getCONST = self#get "constant"   const

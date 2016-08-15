@@ -38,18 +38,18 @@
     inspect its type 
 
     {[
-     (< getIDENT : ('a, 'b, 'c) Combinators.result;           
-        look     : string -> ('a, 'd, 'c) Combinators.result; 
+     (< getIDENT : ('a, 'b, 'c) Types.result;           
+        look     : string -> ('a, 'd, 'c) Types.result; 
         ..                                                    
       > as 'a) ->                                             
-     ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Combinators.result 
+     ('a, 'b * 'd * 'b * 'b list * 'd, 'c) Types.result 
     ]}
 
     and conclude that you need a stream of type
 
     {[
-     < getIDENT : ('a, 'b, 'c) Combinators.result;           
-       look     : string -> ('a, 'd, 'c) Combinators.result; 
+     < getIDENT : ('a, 'b, 'c) Types.result;           
+       look     : string -> ('a, 'd, 'c) Types.result; 
        ..                                                    
      > as 'a                                                 
     }]
@@ -185,19 +185,19 @@ class t : string ->
     (** [get name expr] is a parser which parses regular expression [expr] at the current
         position. [name] is a name for diagnostic purposes.
     *)
-    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Combinators.result
+    method get : string -> Str.regexp -> ('a, Token.t, Reason.t) Types.result
 
     (** [regexp name str] is a shorthand for [get name (Str.regexp str)]. *)
-    method regexp : string -> string -> ('a, Token.t, Reason.t) Combinators.result
+    method regexp : string -> string -> ('a, Token.t, Reason.t) Types.result
 
     (** [getEOF] detects the end of stream. *)
-    method getEOF : ('a, Token.t, Reason.t) Combinators.result
+    method getEOF : ('a, Token.t, Reason.t) Types.result
 
     (** [loc] gets the current location in the stream. *)
     method loc : Msg.Locator.t
 
     (** [look str] looks at the current stream for string [str]. *)
-    method look : string -> ('a, Token.t, Reason.t) Combinators.result
+    method look : string -> ('a, Token.t, Reason.t) Types.result
 
     (** Method to skip meaningless symbols (e.g. whitespaces); returns
         position and coordinates of first meaningful symbol. [skip] is implicitly

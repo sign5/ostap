@@ -44,6 +44,9 @@ module Coord =
 
 module MC = Map.Make(Coord)
 
+open GT
+
+
 module rec Locator :
    sig
 
