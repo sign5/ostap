@@ -756,7 +756,6 @@ touch conftest.ml
 ac_ext=ml
 ac_link="$CC conftest.ml && ( rm -f conftest.cm?; test -f camlprog.exe && mv camlprog.exe a.exe || true )"
 _AC_COMPILER_EXEEXT_DEFAULT
-_AC_COMPILER_EXEEXT_WORKS
 _AC_COMPILER_EXEEXT_O
 rm -f a.out a.exe
 CC=$OLDCC
@@ -779,7 +778,7 @@ AC_SUBST(OCAMLMKTOP)
 AC_SUBST(OCAMLMKLIB)
 AC_SUBST(OCAMLDOC)
 ])
-m4trace:m4/acinclude.m4:198: -1- AC_DEFUN([AC_PROG_OCAML_TOOLS], [
+m4trace:m4/acinclude.m4:197: -1- AC_DEFUN([AC_PROG_OCAML_TOOLS], [
 
 dnl Checking for ocamllex
 AC_CHECK_PROG(have_ocamllex, ocamllex, yes, no)
@@ -809,7 +808,7 @@ fi
 AC_SUBST(OCAMLLEX)
 AC_SUBST(OCAMLYACC)
 ])
-m4trace:m4/acinclude.m4:237: -1- AC_DEFUN([AC_PROG_CAMLP4], [
+m4trace:m4/acinclude.m4:236: -1- AC_DEFUN([AC_PROG_CAMLP4], [
 AC_REQUIRE([AC_PROG_OCAML])
 dnl Checking for camlp4
 AC_CHECK_PROG(have_camlp4, camlp4, yes, no)
@@ -891,7 +890,7 @@ AC_SUBST(CAMLP4R)
 AC_SUBST(CAMLP4RF)
 AC_SUBST(CAMLP4LIB)
 ])
-m4trace:m4/acinclude.m4:326: -1- AC_DEFUN([AC_PROG_CAMLP5], [
+m4trace:m4/acinclude.m4:325: -1- AC_DEFUN([AC_PROG_CAMLP5], [
 AC_REQUIRE([AC_PROG_OCAML])
 dnl Checking for camlp5
 AC_CHECK_PROG(have_camlp5, camlp5, yes, no)
@@ -946,7 +945,7 @@ AC_SUBST(CAMLP5O)
 AC_SUBST(CAMLP5R)
 AC_SUBST(CAMLP5LIB)
 ])
-m4trace:m4/acinclude.m4:386: -1- AC_DEFUN([AC_PROG_FINDLIB], [
+m4trace:m4/acinclude.m4:385: -1- AC_DEFUN([AC_PROG_FINDLIB], [
 AC_ARG_WITH(findlib,[  --without-findlib       do not use findlib package system],
   skip_findlib="$withval")
 dnl Checking for ocamlfind
@@ -963,7 +962,7 @@ else
 fi
 AC_SUBST(OCAMLFIND)
 ])
-m4trace:m4/acinclude.m4:407: -1- AC_DEFUN([AC_PROG_OCAMLDSORT], [
+m4trace:m4/acinclude.m4:406: -1- AC_DEFUN([AC_PROG_OCAMLDSORT], [
 AC_ARG_WITH(ocamldsort,[  --with-ocamldsort       sort sources before build],
   use_ocamldsort="$withval")
 dnl Checking for ocamldsort
@@ -980,12 +979,12 @@ else
 fi
 AC_SUBST(OCAMLDSORT)
 ])
-m4trace:m4/acinclude.m4:429: -1- AC_DEFUN([AC_ARG_OCAML_SITELIB], [
+m4trace:m4/acinclude.m4:428: -1- AC_DEFUN([AC_ARG_OCAML_SITELIB], [
 AC_ARG_WITH(sitelib,[  --with-sitelib=DIR      specify OCaml installation directory],
     SITELIBDIR="$withval")
 AC_SUBST(SITELIBDIR)
 ])
-m4trace:m4/acinclude.m4:501: -1- AC_DEFUN([AC_CHECK_OCAML_MODULE], [
+m4trace:m4/acinclude.m4:500: -1- AC_DEFUN([AC_CHECK_OCAML_MODULE], [
 for module in $2; do
     AC_MSG_CHECKING(for $1 ($module))
 
@@ -1007,7 +1006,7 @@ AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 AC_SUBST(META)
 ])
-m4trace:m4/acinclude.m4:533: -1- AC_DEFUN([AC_CHECK_OCAML_LIBRARY], [
+m4trace:m4/acinclude.m4:532: -1- AC_DEFUN([AC_CHECK_OCAML_LIBRARY], [
 for module in $2; do
     AC_MSG_CHECKING(for $1 ($module))
 
@@ -1048,7 +1047,7 @@ AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 AC_SUBST(META)
 ])
-m4trace:m4/acinclude.m4:583: -1- AC_DEFUN([AC_CHECK_CAMLP4_MODULE], [
+m4trace:m4/acinclude.m4:582: -1- AC_DEFUN([AC_CHECK_CAMLP4_MODULE], [
 AC_MSG_CHECKING(for $1 ($2))
 cat > conftest.ml <<EOF
 #load "$2";
@@ -1103,7 +1102,7 @@ dnl Absolute Windows path starting with letter
 fi
 AC_SUBST(PARSER_INCLUDES)
 ])
-m4trace:m4/acinclude.m4:647: -1- AC_DEFUN([AC_CHECK_CAMLP5_MODULE], [
+m4trace:m4/acinclude.m4:646: -1- AC_DEFUN([AC_CHECK_CAMLP5_MODULE], [
 AC_MSG_CHECKING(for $1 ($2))
 cat > conftest.ml <<EOF
 let _ = 3
