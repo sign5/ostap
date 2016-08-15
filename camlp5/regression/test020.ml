@@ -1,4 +1,5 @@
 open Ostap
+open Types
 open Combinators
 open Matcher 
 open Printf 
@@ -158,7 +159,7 @@ let _ =
     then "a+a" 
     else Sys.argv.(1) 
   in
-  match Test0.main (new lexer input (* :> #MemoParser.t *)) with
+  match Test0.main (new lexer input) with
   | Parsed ((b, _), _) -> Printf.printf "Parsed. %s\n" (Test0.print b)
   | Failed m -> Printf.printf "Not parsed:\n%s\n" (Reason.toString `All `Acc m) 
 
