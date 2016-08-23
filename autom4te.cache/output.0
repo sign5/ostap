@@ -4346,12 +4346,12 @@ done
 
 
  
-for module in Str; do
-    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for str ($module)" >&5
-$as_echo_n "checking for str ($module)... " >&6; }
+for module in Re_str; do
+    { $as_echo "$as_me:${as_lineno-$LINENO}: checking for re ($module)" >&5
+$as_echo_n "checking for re ($module)... " >&6; }
 
     unset META
-    ocaml_compile "str" "$module" ""
+    ocaml_compile "re" "$module" ""
     if test "$found" ; then
 
 cat > conftest.ml <<EOF
@@ -4361,7 +4361,7 @@ EOF
 		if test -f "$META"; then
 		    CMA=`grep "archive(byte)" $META | sed -e 's,[^=]*= *"\(.*\)",\1,g'`
 		fi
-		test -z "$CMA" && CMA="str.cma"
+		test -z "$CMA" && CMA="re.cma"
 		if ! $OCAMLC -o conftest -rectypes $MODULE_INCLUDES $CMA conftest.cmo > /dev/null 2>&1 ; then
 		    { $as_echo "$as_me:${as_lineno-$LINENO}: result: $CMA not found" >&5
 $as_echo "$CMA not found" >&6; }
@@ -4369,7 +4369,7 @@ $as_echo "$CMA not found" >&6; }
 			{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit " >&5
 $as_echo "$as_me: WARNING: Please, visit " >&2;}
 	    	    fi
-		    as_fn_error $? "Required library str not found" "$LINENO" 5
+		    as_fn_error $? "Required library re not found" "$LINENO" 5
 		else
 		    if ! echo "$EXTRA_CMA" | grep "$CMA" > /dev/null 2>&1 ; then
 			EXTRA_CMA="$EXTRA_CMA $CMA"
@@ -4384,7 +4384,7 @@ $as_echo "not found" >&6; }
 		    { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit " >&5
 $as_echo "$as_me: WARNING: Please, visit " >&2;}
 		fi
-		as_fn_error $? "Required module $module not found in library str" "$LINENO" 5
+		as_fn_error $? "Required module $module not found in library re" "$LINENO" 5
     fi
 done
 

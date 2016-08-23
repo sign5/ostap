@@ -66,7 +66,7 @@ dnl 1st dir <space> 2nd dir <space> etc., library homepage.
 AC_CHECK_OCAML_LIBRARY(typeutil, Compare, ../typeutil/src, http://oops.tepkom.ru/projects/typeutil) dnl GET: svn co svn://oops.tepkom.ru/svn/typeutil/trunk
 AC_CHECK_OCAML_LIBRARY(GT, GT, ../generic-transformers/src, http://oops.math.spbu.ru/projects/checked) dnl GET: svn co http://oops.math.spbu.ru/svn/chec
 dnl more module checks
-AC_CHECK_OCAML_LIBRARY(str, Str)
+AC_CHECK_OCAML_LIBRARY(re, Re_str)
 AC_SUBST(MODULE_INCLUDES)
 AC_SUBST(EXTRA_CMA)
 

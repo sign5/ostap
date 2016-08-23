@@ -129,7 +129,7 @@ class memoStream :
     method coord : Msg.Coord.t
     method get :
       string ->
-      Str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
+      Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
     method getEOF : ('a, Matcher.Token.t, Reason.t) Types.result
     method line : int
     method loc : Msg.Locator.t

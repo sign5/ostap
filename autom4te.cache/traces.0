@@ -1254,7 +1254,7 @@ m4trace:configure.in:67: -1- AC_CHECK_OCAML_LIBRARY([GT], [GT], [../generic-tran
 m4trace:configure.in:67: -1- m4_pattern_allow([^MODULE_INCLUDES$])
 m4trace:configure.in:67: -1- m4_pattern_allow([^EXTRA_CMA$])
 m4trace:configure.in:67: -1- m4_pattern_allow([^META$])
-m4trace:configure.in:69: -1- AC_CHECK_OCAML_LIBRARY([str], [Str])
+m4trace:configure.in:69: -1- AC_CHECK_OCAML_LIBRARY([re], [Re_str])
 m4trace:configure.in:69: -1- m4_pattern_allow([^MODULE_INCLUDES$])
 m4trace:configure.in:69: -1- m4_pattern_allow([^EXTRA_CMA$])
 m4trace:configure.in:69: -1- m4_pattern_allow([^META$])

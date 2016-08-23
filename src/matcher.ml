@@ -18,7 +18,7 @@
 open Types
 open String
 open Printf
-open Str
+open Re_str
 open Reason
 	
 module Token =
@@ -193,7 +193,7 @@ class t s =
 
     method regexp name str = self#get name 
       (try Hashtbl.find regexps str with Not_found ->
-         let regexp = Str.regexp str in
+         let regexp = Re_str.regexp str in
          Hashtbl.add regexps str regexp;
          regexp 
       )
