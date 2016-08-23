@@ -42,9 +42,9 @@ POST_INSTALL = :
 NORMAL_UNINSTALL = :
 PRE_UNINSTALL = :
 POST_UNINSTALL = :
-build_triplet = x86_64-unknown-linux-gnu
-host_triplet = x86_64-unknown-linux-gnu
-target_triplet = x86_64-unknown-linux-gnu
+build_triplet = i686-pc-linux-gnu
+host_triplet = i686-pc-linux-gnu
+target_triplet = i686-pc-linux-gnu
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(top_srcdir)/m4/Makefile.am.rules \
 	$(top_srcdir)/m4/Makefile.am.targets \
@@ -58,23 +58,23 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 CONFIG_CLEAN_FILES =
 DIST_SOURCES =
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
-ACLOCAL = ${SHELL} /home/db/develop/ostap/config/missing --run aclocal-1.9
-AMTAR = ${SHELL} /home/db/develop/ostap/config/missing --run tar
-AUTOCONF = ${SHELL} /home/db/develop/ostap/config/missing --run autoconf
-AUTOHEADER = ${SHELL} /home/db/develop/ostap/config/missing --run autoheader
-AUTOMAKE = ${SHELL} /home/db/develop/ostap/config/missing --run automake-1.9
+ACLOCAL = ${SHELL} /home/db/Downloads/ostap/config/missing --run aclocal-1.9
+AMTAR = ${SHELL} /home/db/Downloads/ostap/config/missing --run tar
+AUTOCONF = ${SHELL} /home/db/Downloads/ostap/config/missing --run autoconf
+AUTOHEADER = ${SHELL} /home/db/Downloads/ostap/config/missing --run autoheader
+AUTOMAKE = ${SHELL} /home/db/Downloads/ostap/config/missing --run automake-1.9
 AWK = mawk
 BFLAGS = $(AM_BFLAGS) -rectypes
 CAMLP4 = camlp4
-CAMLP4LIB = /usr/lib/ocaml/camlp4
+CAMLP4LIB = /usr/local/lib/ocaml/camlp4
 CAMLP4O = camlp4o
-CAMLP4OF = 
+CAMLP4OF = camlp4of
 CAMLP4R = camlp4r
-CAMLP4RF = 
+CAMLP4RF = camlp4rf
 CAMLP4_FALSE = #
 CAMLP4_TRUE = 
 CAMLP5 = camlp5
-CAMLP5LIB = /usr/lib/ocaml/camlp5
+CAMLP5LIB = /usr/local/lib/ocaml/camlp5
 CAMLP5O = camlp5o
 CAMLP5R = camlp5r
 CAMLP5_FALSE = #
@@ -98,11 +98,11 @@ LIBOBJS =
 LIBS = 
 LOG = 
 LTLIBOBJS = 
-MAKEINFO = ${SHELL} /home/db/develop/ostap/config/missing --run makeinfo
-META = /usr/local/lib/ocaml/4.01.0/re/META
+MAKEINFO = ${SHELL} /home/db/Downloads/ostap/config/missing --run makeinfo
+META = /usr/local/lib/ocaml/site-lib/re/META
 MINGW32_FALSE = 
 MINGW32_TRUE = #
-MODULE_INCLUDES =  -I /usr/local/lib/ocaml/4.01.0/typeutil -I /usr/local/lib/ocaml/4.01.0/GT -I /usr/local/lib/ocaml/4.01.0/re -I $(top_srcdir)/src -I \
+MODULE_INCLUDES =  -I /usr/local/lib/ocaml/site-lib/typeutil -I /usr/local/lib/ocaml/site-lib/GT -I /usr/local/lib/ocaml/site-lib/re -I $(top_srcdir)/src -I \
 	$(top_srcdir)/util -I ../src
 OCAMLC = ocamlc.opt
 OCAMLDEP = ocamldep
@@ -110,11 +110,11 @@ OCAMLDOC = ocamldoc
 OCAMLDSORT = echo
 OCAMLFIND = ocamlfind
 OCAMLLEX = ocamllex.opt
-OCAMLLIB = /usr/lib/ocaml
+OCAMLLIB = /usr/local/lib/ocaml
 OCAMLMKLIB = ocamlmklib
 OCAMLMKTOP = ocamlmktop
 OCAMLOPT = ocamlopt.opt
-OCAMLVERSION = 4.01.0
+OCAMLVERSION = 4.03.0
 OCAMLYACC = ocamlyacc
 OFLAGS = $(AM_OFLAGS) -rectypes
 P4FLAGS = $(AM_P4FLAGS)
@@ -138,11 +138,11 @@ am__leading_dot = .
 am__tar = ${AMTAR} chof - "$$tardir"
 am__untar = ${AMTAR} xf -
 bindir = ${exec_prefix}/bin
-build = x86_64-unknown-linux-gnu
+build = i686-pc-linux-gnu
 build_alias = 
-build_cpu = x86_64
+build_cpu = i686
 build_os = linux-gnu
-build_vendor = unknown
+build_vendor = pc
 datadir = ${datarootdir}
 datarootdir = ${prefix}/share
 docdir = ${datarootdir}/doc/${PACKAGE}
@@ -150,9 +150,9 @@ dvidir = ${docdir}
 exec_prefix = ${prefix}
 have_camlp4 = yes
 have_camlp4o = yes
-have_camlp4of = no
+have_camlp4of = yes
 have_camlp4r = yes
-have_camlp4rf = no
+have_camlp4rf = yes
 have_camlp5 = yes
 have_camlp5o = yes
 have_camlp5r = yes
@@ -170,15 +170,15 @@ have_ocamlmktop = yes
 have_ocamlopt = yes
 have_ocamloptdotopt = yes
 have_ocamlyacc = yes
-host = x86_64-unknown-linux-gnu
+host = i686-pc-linux-gnu
 host_alias = 
-host_cpu = x86_64
+host_cpu = i686
 host_os = linux-gnu
-host_vendor = unknown
+host_vendor = pc
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = /home/db/develop/ostap/config/install-sh
+install_sh = /home/db/Downloads/ostap/config/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -193,11 +193,11 @@ psdir = ${docdir}
 sbindir = ${exec_prefix}/sbin
 sharedstatedir = ${prefix}/com
 sysconfdir = ${prefix}/etc
-target = x86_64-unknown-linux-gnu
+target = i686-pc-linux-gnu
 target_alias = 
-target_cpu = x86_64
+target_cpu = i686
 target_os = linux-gnu
-target_vendor = unknown
+target_vendor = pc
 
 # type in sources here
 SOURCES = sample.ml
@@ -289,9 +289,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/m4/Makefile.am.vars 
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  sample/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  sample/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  sample/Makefile
+	  $(AUTOMAKE) --foreign  sample/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
