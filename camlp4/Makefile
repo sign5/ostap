@@ -297,9 +297,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am $(top_srcdir)/m4/Makefile.am.vars 
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu  camlp4/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign  camlp4/Makefile'; \
 	cd $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu  camlp4/Makefile
+	  $(AUTOMAKE) --foreign  camlp4/Makefile
 .PRECIOUS: Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
