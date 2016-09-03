@@ -20,6 +20,16 @@ open Combinators
 
 (** Predefined parsing utilities. *)
 
+(** {2 Parsing keywords} *)
+
+(** [keyword[string]] parses a string as a keyword (e.g. taking into
+    account word boundaries
+*)
+val keyword : string -> < regexp : string -> string -> 'a; .. > -> 'a
+
+(** Infix synonym for [keyword] *)
+val ( ~$ ) : string -> < regexp : string -> string -> 'a; .. > -> 'a
+
 (** {2 List parsing} *)
 
 (** [listByWith s delim item f x] parses a non-empty list of [item]s delimited by [delim] from a stream [s]

@@ -27,6 +27,12 @@ module Ostap =
   end
 
 ostap (
+  keyword[name]: @(name ^ "\\b" : name)
+)
+
+let (~$) = keyword
+
+ostap (
   listByWith[delim][item][f][x]: h:item result:(-delim item) * with{f x h}{f} {result}
 )
 
