@@ -54,7 +54,6 @@ AC_CHECK_CAMLP5_MODULE(pa_pprintf, pa_pprintf.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(q_MLast, q_MLast.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(Pr_o, pr_o.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(logger, pa_log.cmo, +camlp5)
-AC_CHECK_CAMLP5_MODULE(checked, pa_checked.cmo, +camlp5)
 AC_CHECK_CAMLP5_MODULE(GT, pa_gt.cmo, +camlp5)
 AC_SUBST(PARSER_INCLUDES)
 fi

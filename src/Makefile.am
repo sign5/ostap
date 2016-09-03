@@ -9,7 +9,7 @@ include $(top_srcdir)/m4/Makefile.am.vars
 CMO := $(SORTED:.ml=.cmo)
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_checked.cmo pa_log.cmo $(LOG) pa_gt.cmo -L `camlp5o -where`"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_log.cmo $(LOG) pa_gt.cmo -L `camlp5o -where`"
 AM_BFLAGS += -w x -rectypes -for-pack Ostap
 AM_OFLAGS += -w x -rectypes -for-pack Ostap
 

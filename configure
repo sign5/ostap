@@ -4143,62 +4143,6 @@ fi
 
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for checked (pa_checked.cmo)" >&5
-$as_echo_n "checking for checked (pa_checked.cmo)... " >&6; }
-cat > conftest.ml <<EOF
-let _ = 3
-EOF
-if $CAMLP5O pa_checked.cmo $PARSER_INCLUDES conftest.ml > /dev/null 2>&1 ; then
-    { $as_echo "$as_me:${as_lineno-$LINENO}: result: found" >&5
-$as_echo "found" >&6; }
-else
-    unset found
-    if ! test "$use_findlib" = no ; then
-	if check_inc=`$OCAMLFIND query -i-format checked 2>/dev/null`; then
-	    if $CAMLP5R $PARSER_INCLUDES $check_inc conftest.ml > /dev/null 2>&1 ; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: result: adding $check_inc" >&5
-$as_echo "adding $check_inc" >&6; }
-		PARSER_INCLUDES="$PARSER_INCLUDES $check_inc"
-		found=yes
-	    fi
-	fi
-    fi
-    if ! test "$found"; then
-	if test -n "$SITELIBDIR"; then
-	    dirs="+camlp5 $SITELIBDIR/camlp5 $OCAMLLIB/camlp5"
-	else
-	    dirs="+camlp5 $OCAMLLIB/camlp5"
-	fi
-	for check_dir in $dirs; do
-	    builddir=`pwd`
-	    case $check_dir in
-		[\\/+]*) ;;
-		[[:alpha:]]:\\*) ;;
-		*) check_dir="$builddir/$check_dir";;
-	    esac
-	    if $CAMLP5R -I $check_dir conftest.ml > /dev/null 2>&1 ; then
-		found=yes
-		break
-	    fi
-	done
-	if test "$found" ; then
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: adding -I $check_dir" >&5
-$as_echo "adding -I $check_dir" >&6; }
-	    PARSER_INCLUDES="$PARSER_INCLUDES -I $check_dir"
-	else
-	    { $as_echo "$as_me:${as_lineno-$LINENO}: result: not found" >&5
-$as_echo "not found" >&6; }
-	    if ! test -z ""; then
-		{ $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: Please, visit " >&5
-$as_echo "$as_me: WARNING: Please, visit " >&2;}
-	    fi
-	    as_fn_error $? "Required module checked not found" "$LINENO" 5
-	fi
-    fi
-fi
-
-
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for GT (pa_gt.cmo)" >&5
 $as_echo_n "checking for GT (pa_gt.cmo)... " >&6; }
 cat > conftest.ml <<EOF
