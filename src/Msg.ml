@@ -109,10 +109,8 @@ module rec Locator :
             (match fil with None -> "" | Some fil -> sprintf "%s: " fil) ^ coord
          | Interval (x, y) ->
             let succ, filx, x =
-               (*printf "Looking for %s\n" (Coord.toString x);*)
                !writer !relocs x in
             let    _, fily, y =
-               (*printf "Looking for %s\n" (Coord.toString y);*)
                !writer succ    y in
             (match filx, fily with
             | None, None -> sprintf "%s-%s" x y

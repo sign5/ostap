@@ -28,7 +28,7 @@ module Token =
 
     let toString (t, c) = sprintf "%s at %s" t (Msg.Coord.toString c)
 
-    let loc (t, c) = Msg.Locator.Interval (c, Msg.Coord.shift c t 0 (length t)) (* ((fst c), (snd c)+(length t)-1) *)
+    let loc (t, c) = Msg.Locator.Interval (c, Msg.Coord.shift c t 0 (length t))
     let repr       = fst
 
   end

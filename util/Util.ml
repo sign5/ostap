@@ -1,4 +1,4 @@
-(*
+1(*
  * Util: predefined Ostap utilities.
  * Copyright (C) 2006-2009
  * Dmitri Boulytchev, St.Petersburg State University
@@ -98,3 +98,84 @@ let read name =
   really_input inch buf 0 len;
   close_in inch;
   buf
+
+module Lexers =
+  struct
+
+    let isKeyword keywords = 
+      let module S = Set.Make (String) in
+      let s = List.fold_left (fun s k -> S.add k s) S.empty keywords in
+      (fun i -> S.mem i s)     
+   
+    class checkKeywords keywords =
+      let k = isKeyword keywords in
+      object
+	method private keyword = k
+      end
+
+    class virtual genericIdent regexp name keywords s =
+      let regexp = Re_str.regexp regexp in 
+      object(self : 'a)
+	inherit checkKeywords keywords
+	method virtual get      : string -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
+        method private getIdent : ('a, string, Reason.t) Types.result = 
+	  Types.bind 
+	    (self#get name regexp) 
+	    (fun t -> 
+	       let r = Token.repr t in
+	       if self#keyword r then `Fail (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
+	       else `Ok r
+	    )
+      end
+   
+    class virtual uident keywords s = 
+      object inherit genericIdent "[A-Z]\([a-zA-Z_0-9]\)*\\b" "u-identifier" keywords s as ident
+	method getUIDENT = ident#getIdent
+      end
+
+    class virtual lident keywords s = 
+      object inherit genericIdent "[a-z]\([a-zA-Z_0-9]\)*\\b" "l-identifier" keywords s as ident
+	method getLIDENT = ident#getIdent
+      end
+
+    class virtual ident keywords s =
+      object inherit genericIdent "[a-zA-Z]\([a-zA-Z_0-9]\)*\\b" "identifier" keywords s as ident
+	method getIDENT = ident#getIdent
+      end
+
+    class virtual decimal s =
+      let regexp = Re_str.regexp "-?[0-9]+" in
+      object(self : 'a)
+	method virtual get : string -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
+	method getDECIMAL : ('a, int, Reason.t) Types.result = 
+	  Types.bind 
+	    (self#get "decimal constant" regexp)
+	    (fun t -> `Ok (int_of_string @@ Token.repr t))
+      end
+
+    class virtual string s =
+      let regexp = Re_str.regexp "" in
+      object(self : 'a)
+	method virtual get : String.t -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
+	method getSTRING : ('a, String.t, Reason.t) Types.result =
+	  Types.bind
+	    (self#get "string constant" regexp)
+	    (fun t -> `Ok (Token.repr t))
+      end
+
+    class skip skippers s =
+      object inherit t s
+	val skipper = Skip.create skippers
+	method skip = skipper s
+      end
+
+  end
+
+let parse l p =
+  Combinators.unwrap (p l) 
+    (fun x -> `Ok x) 
+    (fun (Some err) ->
+       let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
+       let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
+       `Fail (Msg.toString m)
+    )
