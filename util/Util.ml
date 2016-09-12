@@ -90,8 +90,8 @@ let expr f ops opnd =
     | {n > l && not (nona l)} => x:inner[l+1][id] b:(-o:op[l] inner[l][o c x])? {
         match b with None -> c x | Some x -> x
       }
-    | {n > l && nona l} => x:inner[l+1][id] b:(-o:op[l] inner[l+1][o c x])? {
-        match b with None -> c x | Some x -> x
+    | {n > l && nona l} => x:inner[l+1][id] b:(op[l] inner[l+1][id])? {
+        c (match b with None -> x | Some (o, y) -> o id x y)
       })]
   )
   in 
