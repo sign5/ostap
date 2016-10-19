@@ -1,4 +1,4 @@
-true: rectypes, package(re)
+true: rectypes, package(re.str)
 "camlp5/extension.ml": package(camlp5), pp(camlp5o), use_ostap_lib
 
 # GT for View module

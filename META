@@ -1,6 +1,6 @@
 version = "0.3"
 description = "Parser-combinator library"
-requires = "re GT"
+requires = "re.str GT"
 archive(byte) = "ostap.cmo"
 archive(byte, plugin) = "ostap.cmo"
 archive(native) = "ostap.cmx"
