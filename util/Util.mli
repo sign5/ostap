@@ -140,7 +140,7 @@ module Lexers :
      *)
     class virtual uident : string list -> string ->
       object('a)
-	method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result	
+        method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
         method getUIDENT : ('a, string, Reason.t) Types.result
       end
 
@@ -149,7 +149,7 @@ module Lexers :
      *)
     class virtual lident : string list -> string ->
       object('a)
-	method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result	
+	method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
         method getLIDENT : ('a, string, Reason.t) Types.result
       end
 
@@ -158,7 +158,7 @@ module Lexers :
      *)
     class virtual ident : string list -> string ->
       object('a)
-	method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result	
+        method virtual get : string -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result
         method getIDENT : ('a, string, Reason.t) Types.result
       end
 
@@ -197,4 +197,4 @@ val read : string -> string
 (** [parse l p] parses a stream, represented by [l], by a parser [p]; this is a 
     simplified entry point 
 *)
-val parse : #Matcher.t as 'a -> ('a, 'c, Reason.t) parse -> [`Fail of String.t | `Ok of 'c]
+val parse : (#Matcher.t as 'a) -> ('a, 'c, Reason.t) parse -> [`Fail of String.t | `Ok of 'c]

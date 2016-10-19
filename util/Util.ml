@@ -111,8 +111,8 @@ module Lexers =
     let isKeyword keywords = 
       let module S = Set.Make (String) in
       let s = List.fold_left (fun s k -> S.add k s) S.empty keywords in
-      (fun i -> S.mem i s)     
-   
+      (fun i -> S.mem i s)
+
     class checkKeywords keywords =
       let k = isKeyword keywords in
       object
