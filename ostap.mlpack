@@ -6,4 +6,5 @@ src/Pretty
 src/PrioReorderer
 src/Reason
 src/Trap
+src/Types
 util/Util

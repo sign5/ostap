@@ -83,6 +83,7 @@ test: tests
 ######################## Installation related stuff ##########################
 INSTALL_TARGETS=META \
 	_build/pa_ostap.cmo \
+	_build/ostap.cmo \
 	_build/ostap.cmx \
 	_build/ostap.cmi \
 	_build/ostap.o \
