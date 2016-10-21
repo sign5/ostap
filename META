@@ -10,7 +10,7 @@ package "syntax" (
  version = "0.3"
  description = "Camlp5 syntax extension"
  requires = "camlp5 "
- archive(syntax, preprocessor) = "pr_o.cmo pa_ostap.cmo"
+ archive(syntax, preprocessor) = "pa_ostap.cmo"
  archive(syntax, toploop) = "pa_ostap.cmo"
 )
 
