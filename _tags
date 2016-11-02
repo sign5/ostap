@@ -9,7 +9,7 @@ true: rectypes, package(re.str)
 <util/Util.ml>:  use_pa_ostap, package(camlp5), for-pack(Ostap)
 <util/Util.mli>: for-pack(Ostap)
 
-#<util/*>: syntax(camlp5o), package(camlp5), ppopt(pr_o.cmo)
+#<util/*>: syntax(camlp5o), package(camlp5)
 
 <camlp5/regression/*.ml>: use_pa_ostap
 <camlp5/regression/test*.byte> or <camlp5/regression/test*.native>: package(re.str,GT)
