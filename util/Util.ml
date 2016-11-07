@@ -160,7 +160,7 @@ module Lexers =
       end
 
     class virtual string s =
-      let regexp = Re_str.regexp "" in
+      let regexp = Re_str.regexp "\"\([^\"]\|\\\"\)*\"" in
       object(self : 'a)
 	method virtual get : String.t -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
 	method getSTRING : ('a, String.t, Reason.t) Types.result =
