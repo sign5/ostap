@@ -160,13 +160,23 @@ module Lexers =
       end
 
     class virtual string s =
-      let regexp = Re_str.regexp "\"\([^\"]\|\\\"\)*\"" in
+      let regexp = Re_str.regexp (*"\"\([^\"]\|\\\"\)*\""*) "\"[^\"]*\"" in
       object(self : 'a)
 	method virtual get : String.t -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
 	method getSTRING : ('a, String.t, Reason.t) Types.result =
 	  Types.bind
 	    (self#get "string constant" regexp)
 	    (fun t -> `Ok (Token.repr t))
+      end
+
+    class virtual char s =
+      let regexp = Re_str.regexp "'\([^']\|\\'\)'" in
+      object(self : 'a)
+	method virtual get : String.t -> Re_str.regexp -> ('a, Token.t, Reason.t) Types.result
+	method getCHAR : ('a, Char.t, Reason.t) Types.result =
+	  Types.bind
+	    (self#get "character constant" regexp)
+	    (fun t -> `Ok ((Token.repr t).[0]))
       end
 
     class skip skippers s =

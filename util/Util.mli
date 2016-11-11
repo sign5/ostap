@@ -171,13 +171,22 @@ module Lexers :
         method getDECIMAL : ('a, int, Reason.t) Types.result
       end
 
-    (** A lexer component for parsing quoted strings; the first argument is 
+    (** A lexer component for parsing double-quoted strings; the first argument is 
         a string to parse
      *)
     class virtual string : String.t ->
       object('a)
 	method virtual get : String.t -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result	
         method getSTRING : ('a, String.t, Reason.t) Types.result
+      end
+
+    (** A lexer component for parsing single-quoted characters; the first argument is 
+        a string to parse
+     *)
+    class virtual char : String.t ->
+      object('a)
+	method virtual get : String.t -> Re_str.regexp -> ('a, Matcher.Token.t, Reason.t) Types.result	
+        method getCHAR : ('a, Char.t, Reason.t) Types.result
       end
 
     (** A lexer component for skipping whitespaces and comments; the first argument is
