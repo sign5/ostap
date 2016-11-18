@@ -176,7 +176,7 @@ module Lexers =
 	method getCHAR : ('a, Char.t, Reason.t) Types.result =
 	  Types.bind
 	    (self#get "character constant" regexp)
-	    (fun t -> `Ok ((Token.repr t).[0]))
+	    (fun t -> `Ok ((Token.repr t).[1]))
       end
 
     class skip skippers s =
