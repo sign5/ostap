@@ -84,46 +84,8 @@ module CPS =
 
   let cpsalt a b =
     memo
-      (function s -> let x = lazy (b s) in
-        (function k -> begin a s k; force x k end))
-
-  let fix1 f =
-    (function x -> f (x x)) (function x -> f (x x))
-
-  let rec fix3 f = f (fix3 f)
-
-  type ('a,'b) t5 = Wrap of (('a,'b) t5 -> ('a->'b))
-  let unwrap (Wrap x) = x
-  let fix5 f = ((fun g -> g (Wrap g)) (fun x n -> f (unwrap x x) n))
-
-  type ('a,'b) t6 = Wrap of (('a,'b) t6 -> ('a->'b))
-  let auto'apply ((Wrap x) as g) = x g
-  let fix6 f = auto'apply (Wrap (fun x n -> f (auto'apply x) n))
-
-  type ('a,'b) t7 = { unwrap : ('a,'b) t7 -> ('a->'b) }
-  let auto'apply g = g.unwrap g
-  let fix7 f = auto'apply {unwrap = (fun x n -> f (auto'apply x) n)}
-
-  class ['a,'b] t8 y =
-    object method unwrap (x: ('a,'b) t8) (n:'a) : 'b = y x n end
-  let auto'apply g = g#unwrap g
-  let fix8 f = auto'apply (new t8 (fun x n -> f (auto'apply x) n))
-
-  let auto'apply ((`Unwrap f) as g) = f g
-  let fix9 f = auto'apply (`Unwrap (fun x n -> f (auto'apply x) n))
-
-  let fix10 f =
-    let wrap = ref (fun _ -> failwith "undefined") in
-      let auto'apply () = !wrap in
-        auto'apply (wrap := (fun n -> f (auto'apply ()) n))
-
-  class fixc =
-    object (self)
-      method fix' : 'a 'b. (('a->'b)->('a ->'b)) -> ('a->'b) =
-      fun f n -> f (self#fix' f) n end
-  let fix11 f = (new fixc)#fix' f
-
-  let rec fix4 f x = f (fix4 f) x
+      (function s ->
+        (function k -> begin a s k; b s k end))
 
   let fix2 f =
     let rec p = lazy ((f (function t -> force p t))) in force p
@@ -140,25 +102,28 @@ module CPS =
 
   let test5 x = fix2 (function s -> cpsalt (cpsseq s (cpsseq (cpsterminal '+') s)) (cpsterminal 'a')) x
   in cpsseq test5 eof (of_string "a+a+a+a") (function s -> Printf.printf "Test5::success\n");
-(*
-  let rec test6 x = cpsalt 1 (cpsseq (cpsterminal 'a') (cpsseq test6 (cpsterminal 'a')))
-                                     (cpsalt 2 (cpsseq (cpsterminal 'b') (cpsseq test6 (cpsterminal 'b')))
-                                               (cpsalt 3 (cpsseq (cpsterminal 'c') (cpsseq test6 (cpsterminal 'c')))
-                                                         cpsepsilon)) x
+
+  let test6 x = fix2 (function s -> cpsalt (cpsseq (cpsterminal 'a') (cpsseq s (cpsterminal 'a')))
+                                           (cpsalt (cpsseq (cpsterminal 'b') (cpsseq s (cpsterminal 'b')))
+                                                   (cpsalt (cpsseq (cpsterminal 'c') (cpsseq s (cpsterminal 'c')))
+                                                            cpsepsilon))) x
   in cpsseq test6 eof (of_string "acbbca") (function s -> Printf.printf "Test6::success\n");
 
-  let rec test7  x = cpsalt 1 mulli (cpsseq test7 (cpsseq (cpsterminal '+') mulli)) x
-  and      mulli x = cpsalt 2 primary (cpsseq mulli (cpsseq (cpsterminal '*') primary)) x
-  and    primary x = cpsalt 3 (cpsterminal 'a') (cpsalt 4 (cpsterminal 'b') (cpsterminal 'c')) x
+  let rec test7 x   = fix2 (function s -> cpsalt mulli (cpsseq s (cpsseq (cpsterminal '+') mulli))) x
+  and     mulli x   = fix2 (function s -> cpsalt primary (cpsseq s (cpsseq (cpsterminal '*') primary))) x
+  and     primary x = cpsalt (cpsterminal 'a') (cpsalt  (cpsterminal 'b') (cpsterminal 'c')) x
   in cpsseq test7 eof (of_string "a+b+c") (function s -> Printf.printf "Test7::success\n");
      cpsseq test7 eof (of_string "a*b+c") (function s -> Printf.printf "Test7.5::success\n");
 
+  let rec test8 x = fix2 (function s -> cpsalt (cpsseq s (cpsseq s s)) (cpsalt (cpsseq s s) (cpsalt (cpsterminal 'b') cpsepsilon))) x
+  in cpsseq test8 eof (of_string "bbbbbb") (function s -> Printf.printf "Test8::success\n");
+
   let expr n =
-    let rec e s = cpsalt 1 m (cpsseq e (cpsseq (cpsalt 2 (cpsterminal '+') (cpsterminal '-')) m)) s
-    and     m s = cpsalt 3 p (cpsseq m (cpsseq (cpsalt 4 (cpsterminal '*') (cpsterminal '/')) p)) s
-    and     p s = cpsalt 4 n (cpsseq (cpsterminal '(') (cpsseq e (cpsterminal ')'))) s in
+    let rec e x = fix2 (function s -> cpsalt m (cpsseq s (cpsseq (cpsalt (cpsterminal '+') (cpsterminal '-')) m))) x
+    and     m x = fix2 (function s -> cpsalt p (cpsseq s (cpsseq (cpsalt (cpsterminal '*') (cpsterminal '/')) p))) x
+    and     p x = cpsalt n (cpsseq (cpsterminal '(') (cpsseq e (cpsterminal ')'))) x in
     cpsseq e eof
-  in expr (cpsterminal 'n') (of_string "n*(n-n)") (function s -> Printf.printf "Test8::success\n");
-     expr (cpsalt 5 (cpsterminal 'a') (cpsterminal 'b')) (of_string "a*(b+a)") (function s -> Printf.printf "Test9::success\n");
-*)
+  in expr (cpsterminal 'n') (of_string "n*(n-n)") (function s -> Printf.printf "Test9::success\n");
+     expr (cpsalt (cpsterminal 'a') (cpsterminal 'b')) (of_string "a*(b+a)") (function s -> Printf.printf "Test9.5::success\n");
+
   end
