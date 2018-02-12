@@ -1,4 +1,4 @@
-1(*
+(*
  * Util: predefined Ostap utilities.
  * Copyright (C) 2006-2009
  * Dmitri Boulytchev, St.Petersburg State University
@@ -100,10 +100,10 @@ let expr f ops opnd =
 let read name = 
   let inch = open_in_bin name in
   let len  = in_channel_length inch in
-  let buf  = String.make len ' ' in
+  let buf  = Bytes.make len ' ' in
   really_input inch buf 0 len;
   close_in inch;
-  buf
+  Bytes.unsafe_to_string buf
 
 module Lexers =
   struct
