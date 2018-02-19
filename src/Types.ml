@@ -15,10 +15,6 @@
  * (enclosed in the file COPYING).
  *)
 
-type 'a kk = ('a -> unit)
-type 'a cpsresult = ('a kk -> unit)
-type recognizer = (int -> int cpsresult)
-
 type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
 
 type ('a, 'b, 'c) result = ('b * 'a, 'c) tag

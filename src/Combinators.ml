@@ -21,68 +21,6 @@ open List
 open Hashtbl
 open Types
 
-(*new*)
-
-let input = "something"
-
-let success i = function k -> (k i)
-let failure i = function k -> ((*do nothing*))
-
-let cpsterminal c =
-  function i -> (
-    if input.[i] = c
-    then success (i + 1)
-    else failure i)
-
-let cpsepsilon =
-  function i ->
-    success i
-
-let cpsseq a b =
-  function i ->
-    (function k ->
-      a i (function t -> b t k))
-
-let cpsalt a b =
-  function i ->
-    (function k -> begin a i k; b i k end)
-
-let memoresult res =
-  let rs = ref [] in
-  let ks = ref [] in
-    function k -> (
-      if (List.length !ks = 0)
-      then begin
-        ks := k::!ks;
-        let ki = function t -> (if (not (List.mem t !rs))
-                                then begin
-                                  rs := t::!rs;
-                                  let f elem = elem t in
-                                  List.iter f !ks
-                                end) in
-        res () ki
-      end
-      else begin
-        ks := k::!ks;
-        List.iter k !rs
-      end)
-
-let memo f =
-  let table = Hashtbl.create 16 in
-    function i -> (
-      if (Hashtbl.mem table i)
-      then begin
-        Hashtbl.find table i
-      end
-      else begin
-        add table i (memoresult (fun () -> f i));
-        Hashtbl.find table i
-      end
-    )
-
-(*old*)
-
-
 let join = function
 | None   -> fun y -> y
 | Some x -> function None -> Some x | Some y -> Some (x#add y)
