@@ -2,15 +2,15 @@
  * Extension: a camlp5 extension to wrap Ostap's combinators.
  * Copyright (C) 2006-2009
  * Dmitri Boulytchev, St.Petersburg State University
- * 
+ *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License version 2, as published by the Free Software Foundation.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
@@ -37,28 +37,28 @@
   examples of all these constructs are given:
 
   {[
-   (* Grammar rules specification at the structure level; rules are mutually recursive *)        
-   ostap (                                                                                       
-     x: IDENT; (* rule defining parser x *)                                                      
-     y: CONST  (* rule defining parser y *)                                                      
-   )                                                                                             
-                                                                                                 
-   (* Grammar rule at the let-binding level; bindings are mutually recursive *)                  
-   let ostap (x: IDENT) (* rule defining parser x *)                                             
-   and ostap (y: CONST) (* rule defining parser y *)                                             
-   and u = 3            (* an example to demonstrate interoperability with other let-bindings *) 
-                                                                                                 
-   let _ =                                                                                       
-     (* Let-bindings at expression level; x and y are mutually recursive *)                      
-     let ostap (x: IDENT; y: CONST) in                                                           
-     (* Grammar expression *)                                                                    
-     let p = ostap (x y) in                                                                      
-     ()                                                                                          
+   (* Grammar rules specification at the structure level; rules are mutually recursive *)
+   ostap (
+     x: IDENT; (* rule defining parser x *)
+     y: CONST  (* rule defining parser y *)
+   )
+
+   (* Grammar rule at the let-binding level; bindings are mutually recursive *)
+   let ostap (x: IDENT) (* rule defining parser x *)
+   and ostap (y: CONST) (* rule defining parser y *)
+   and u = 3            (* an example to demonstrate interoperability with other let-bindings *)
+
+   let _ =
+     (* Let-bindings at expression level; x and y are mutually recursive *)
+     let ostap (x: IDENT; y: CONST) in
+     (* Grammar expression *)
+     let p = ostap (x y) in
+     ()
   ]}
 
   All these constructs are converted into pure OCaml using [Ostap] parser combinators.
 
-  While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap] 
+  While [Ostap] is purely abstract with regard to stream implementation [Pa_ostap]
   additionally provides convenient integration of parsing and lexing by considering {i streams
   as objects}. Namely, the stream of tokens [L]{_1}, [L]{_2}, ..., [L]{_k} is represented by an object
   with member functions [getL]{_1}, [getL]{_2}, ..., [getL]{_k}. Such a representation allows
@@ -72,12 +72,12 @@
 
   The syntax of parse expressions is as follows (text in {b bold} denotes meta-language syntax description
   symbols):
-  
+
   [parse_expr] {b :} [alternative]{_[1]} {b | } [alternative]{_[2]} {b | ... |} [alternative]{_[k]}
 
   [alternative] {b :} [prefixed+] {b \[ } [semantic]  {b \] }
 
-  [prefixed] {b : } {b \[ } [-] {b \] } [basic]    
+  [prefixed] {b : } {b \[ } [-] {b \] } [basic]
 
   [basic] {b : } {b \[ } [binding] {b \] } [postfix] {b \[ } [predicate] {b \]}
 
@@ -111,7 +111,7 @@
   a set of basic parse functions in any way you find convenient) [Pa_ostap] additionally operates with some predefined
   representation of streams as objects (see module [Matcher]). This representation does not interfere with the
   common approach and you need not use this feature unless you explicitly apply to it. There are only three constructs
-  that refer to object implementation of streams: {i UIDENT}, [$(]{i EXPR}[)] and {i STRING}. If you use {i UIDENT} in grammar 
+  that refer to object implementation of streams: {i UIDENT}, [$(]{i EXPR}[)] and {i STRING}. If you use {i UIDENT} in grammar
   expression, for example {i NAME}, then the stream to parse with this expression has to provide a member function
   {i getNAME}. Similarly using {i STRING} in expression requires stream to provide a member {i look}. Finally you
   may match a stream against value of any OCaml expression of string type by surrounding it with [$(...)].
@@ -123,17 +123,17 @@
   Additionally some folding can be specified for postfix [+] and [*] operators. The folding has the form
   {b with \{} {i EXPR}{b \}\{} {i EXPR} {b \}} where the first expression in curved brackets denotes
   initial value for folding with function given by the second expression. For example
-  
+
   {[
     callee:expression call:(-"(" arguments -")")* with{callee}{fun callee args -> `Call (callee, args)} {call}
   ]}
-  
+
   is equivalent to
 
   {[
     callee:expression call:(-"(" arguments -")")* {List.fold_left (fun callee args -> `Call (callee, args)) callee call}
   ]}
-  
+
   Symbol [$] within parse expression serves as a shortcut for {!Ostap.Combinators.lift} and so delivers underlying stream as
   its semantic value.
 
@@ -147,24 +147,24 @@
   be of boolean type and may use bindings made before.
 
   We will not describe the meaning of all constructs in all details since generally it follows the common
-  BNF style; instead we demonstrate some examples that cover all cases of their exploration. 
+  BNF style; instead we demonstrate some examples that cover all cases of their exploration.
 
   {b Examples:}
 
   {ol
-    {li ["(" expression ")"] is a grammar expression to define a function that matches a stream against successive 
+    {li ["(" expression ")"] is a grammar expression to define a function that matches a stream against successive
      occurrences of ["("], that that parsed by [expression], and [")"]. On success this function returns {i a triple}:
-     the token for ["("] (of type determined by stream implementation), the value parsed by [expression], and the token 
-     for [")"]. There are generally two ways to exclude ["("] and [")"] from the result. The first way is to bind the 
+     the token for ["("] (of type determined by stream implementation), the value parsed by [expression], and the token
+     for [")"]. There are generally two ways to exclude ["("] and [")"] from the result. The first way is to bind the
      result of [expression] to some name and then explicitly specify the result of grammar expression as follows:
 
      ["(" e:expression ")" {e}]
-  
+
      The second is just to say to omit brackets:
 
      [-"(" expression -")"].
 
-     Note that you may specify arbitrary pattern in the left part of binding. Prefix omitting operator "[-]" may also be 
+     Note that you may specify arbitrary pattern in the left part of binding. Prefix omitting operator "[-]" may also be
      applied to any grammar expression, enclosed in brackets.
     }
     {li [hd:item tl:(-"," item)* {hd :: tl}] defines a function to parse a list of [item]s.}
@@ -174,11 +174,11 @@
     {li [x:(integer?) => {match x with Some 0 -> false | _ -> true} => {x}] parses optional non-zero integer value.}
     {li [x:!(MyParseLibrary.MyModule.parseIt)] parses a stream with parse function specified by qualified name.}
   }
- 
+
   In all examples above we assume that [integer] parses integer value, [string] --- string value.
-  
+
   {2 Rules}
- 
+
   Rule is named and optionally parameterized parse expression; several mutually-recursive rules may be
   defined at once. The syntax of rule definition is
 
@@ -187,22 +187,22 @@
   [rules] {b : } [rule]{_1}; [rule]{_2}; ...; [rule]{_k}
 
   [arguments] {b : ( }[\[]{i PATT}[\]] {b )*}
- 
+
   For example,
 
   {[
-   ostap (                                                           
-     sequence[start]: item[start] | next:item[start] sequence[next]; 
-     item[start]: x:integer {x+start} | ";" {start};                 
-     entry: sequence[0]                                              
-   )                                                                 
+   ostap (
+     sequence[start]: item[start] | next:item[start] sequence[next];
+     item[start]: x:integer {x+start} | ";" {start};
+     entry: sequence[0]
+   )
   ]}
 
-  declares (among others) the parser function [entry] which parses and sums a semicolon-terminated 
+  declares (among others) the parser function [entry] which parses and sums a semicolon-terminated
   sequence of integers.
 
   {2 Documentation generation}
- 
+
   Option [-tex ]{i filename} makes [Pa_ostap] generate [LaTeX] documentation for all rules.
   On default all text is placed into specified file; however the output can be split into
   several files by specifying [doc_tag] option for [ostap] construct. The syntax of option is as
@@ -210,7 +210,7 @@
 
   [doc_tag] {b : \[} [\[] {i STRING} [\]] {b \]}
 
-  With this option provided the documentation for corresponding rules will be placed in 
+  With this option provided the documentation for corresponding rules will be placed in
   file with name {i filename}[.]{i tagname}[.tex], where {i filename} is the name specified
   by option [-tex] and {i tagname} is string value of [doc_tag].
 
@@ -232,13 +232,13 @@ open BNF3
 
 module Args =
   struct
-    
+
     let (h : (string, string) Hashtbl.t) = Hashtbl.create 1024
 
     let register x = Hashtbl.add h x x
-    let wrap     x = 
+    let wrap     x =
       try Expr.custom [`S (Hashtbl.find h x)] with Not_found -> Expr.nonterm x
-      
+
     let clear () = Hashtbl.clear h
 
   end
@@ -263,41 +263,41 @@ module Cache =
     let compress x =
       let b = Buffer.create 1024 in
       let f = ref false in
-      for i=0 to String.length x - 1 
+      for i=0 to String.length x - 1
       do
-          match x.[i] with 
+          match x.[i] with
 	    ' ' -> if !f then () else (Buffer.add_char b ' '; f := true)
 	  | '\t' | '\n' -> f := false
-	  | c -> Buffer.add_char b c; f := false	  
+	  | c -> Buffer.add_char b c; f := false
       done;
       Buffer.contents b
 
     let cache x y = Hashtbl.add h (compress x) y
 
-    let rec cached x = 
+    let rec cached x =
       let x = compress x in
-      let rec substitute acc s i j = 
+      let rec substitute acc s i j =
 	let len = String.length s in
-	if j < i then 
+	if j < i then
 	  if i < len then substitute acc s (i+1) (len-1) else List.rev (`S s :: acc)
         else if i = len then List.rev (`S s :: acc)
-             else 
-	       let d = String.sub s i (j-i+1) in 
-	       try 
-		 substitute 
+             else
+	       let d = String.sub s i (j-i+1) in
+	       try
+		 substitute
 		   (`T (Hashtbl.find h d) :: (`S (String.sub s 0 i) :: acc))
 		   (String.sub s (j + 1) (len - j - 1))
 		   0
-		   (len - j - 2)		 
-	       with 
-		 Not_found -> substitute acc s i (j-1)	            
-      in 
-      match substitute [] x 0 (String.length x - 1) with 
+		   (len - j - 2)
+	       with
+		 Not_found -> substitute acc s i (j-1)
+      in
+      match substitute [] x 0 (String.length x - 1) with
 	[`S s] -> Args.wrap s
       | list   -> Expr.custom list
 
   end
- 
+
 let printBNF  = ref (fun (_: string option) (_: string) -> ())
 let printExpr = ref (fun (_: MLast.expr) -> "")
 let printPatt = ref (fun (_: MLast.patt) -> "")
@@ -306,10 +306,10 @@ let texDef     def  = Def.toTeX def
 let texDefList defs =
   let buf = Buffer.create 1024 in
   List.iter (fun def -> Buffer.add_string buf (sprintf "%s\n" (Def.toTeX def))) defs;
-  Buffer.contents buf 
+  Buffer.contents buf
 
 let bindOption x f =
-  match x with 
+  match x with
     None -> None
   | Some x -> Some (f x)
 
@@ -349,27 +349,27 @@ let rec get_defined_ident = function
   | <:patt< ?{$lid:s$ = $_$} >> -> [s]
   | <:patt< ?{$_$ = ?{$lid:s$ = $e$}} >> -> [s]
   | <:patt< $anti:p$ >> -> get_defined_ident p
-  | _ -> [] 
+  | _ -> []
 
 EXTEND
-  GLOBAL: expr patt str_item let_binding; 
+  GLOBAL: expr patt str_item let_binding;
 
   doc_name: [ [ "["; name=STRING; "]" -> name ] ];
 
   str_item: LEVEL "top" [
-    [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" -> 
+    [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" ->
       let (rules, defs) = rules in
       !printBNF doc (texDefList defs);
-      <:str_item< value $opt:true$ $list:rules$ >>       
-    ] 
+      <:str_item< value $opt:true$ $list:rules$ >>
+    ]
   ];
 
   let_binding: [
-    [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" -> 
-      let ((name, rule), def) = rule in 
+    [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" ->
+      let ((name, rule), def) = rule in
       !printBNF doc (texDef def);
-      (<:patt< $lid:name$ >>, rule) 
-    ] 
+      (<:patt< $lid:name$ >>, rule)
+    ]
   ];
 
   expr: LEVEL "expr1" [
@@ -378,7 +378,7 @@ EXTEND
       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
-      f      
+      f
     ]
   ];
 
@@ -386,12 +386,12 @@ EXTEND
     [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
       let (rules, defs) = rules in
       !printBNF doc (texDefList defs);
-      <:expr< let $opt:true$ $list:rules$ in $e$ >> 
-     ] 
+      <:expr< let $opt:true$ $list:rules$ in $e$ >>
+     ]
   ];
 
   o_rules: [
-    [ rules=LIST1 o_rule SEP ";" ->      
+    [ rules=LIST1 o_rule SEP ";" ->
       let (rules, defs) = List.split rules in
       (List.map	(fun (name, rule) -> (<:patt< $lid:name$ >>, rule)) rules, defs)
     ]
@@ -399,46 +399,46 @@ EXTEND
 
   o_rule: [
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
-      let args' = 
-	match args with 
+      let args' =
+	match args with
 	  None   -> [<:patt< _ostap_stream >>]
 	| Some l -> l @ [<:patt< _ostap_stream >>]
       in
       let rule =
-	List.fold_right 
-	  (fun x f -> 
+	List.fold_right
+	  (fun x f ->
 	    let pwel = [(x, Ploc.VaVal None, f)] in
 	    <:expr< fun [$list:pwel$] >>
-	  ) 
+	  )
 	  args'
 	  <:expr< $p$ _ostap_stream >>
-      in      
-      let p = match args with 
+      in
+      let p = match args with
             None      -> []
-          | Some args -> 
+          | Some args ->
 	      let args =
-		List.filter 
-		  (fun p -> 
+		List.filter
+		  (fun p ->
 		    let idents = get_defined_ident p in
 		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) false idents
-		  ) 
+		  )
 		  args
 	      in
-	      List.map !printPatt args	  
+	      List.map !printPatt args
       in
       let tree =
-         match tree with 
+         match tree with
 	    None      -> Expr.string ""
-	  | Some tree -> tree	  
+	  | Some tree -> tree
       in
-      let def = 
-          match p with 
+      let def =
+          match p with
 	    []   -> Def.make  name tree
-	  | args -> Def.makeP name args tree	  
+	  | args -> Def.makeP name args tree
       in
       Args.clear ();
       Uses.clear ();
-      ((name, rule), def)      
+      ((name, rule), def)
     ]
   ];
 
@@ -447,15 +447,15 @@ EXTEND
   o_formal_parameter: [
     [ "["; p=patt; "]" ->
         List.iter Args.register (get_defined_ident p);
-        p      
+        p
     ]
   ];
 
   o_alternatives: [
-    [ p=LIST1 o_alternativeItem SEP "|" -> 
-        match p with 
+    [ p=LIST1 o_alternativeItem SEP "|" ->
+        match p with
 	  [p] -> p
-        |  _  -> 
+        |  _  ->
 	    let (p, trees) = List.split p in
 	    let trees =
 	      List.map
@@ -463,88 +463,88 @@ EXTEND
 		(List.filter (fun x -> x <> None) trees)
 	    in
 	    match
-	      List.fold_right 
-		(fun item expr -> 
-		  match expr with 
+	      List.fold_right
+		(fun item expr ->
+		  match expr with
 		    None -> Some (item)
-		  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)	          
+		  | Some expr -> Some (<:expr< Ostap.Combinators.alt $item$ $expr$ >>)
 		) p None
-	    with 
+	    with
 	      None   -> raise (Failure "internal error --- must not happen")
-	    | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))	    	
+	    | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))
     ]
   ];
 
   o_alternativeItem: [
-    [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic -> 
+    [ g=OPT o_guard; p=LIST1 o_prefix; s=OPT o_semantic ->
 	let (p, trees) = List.split p in
-	let trees = 
-	  List.map 
-	    (fun x -> match x with Some x -> x) 
-	    (List.filter (fun x -> x <> None) trees) 
+	let trees =
+	  List.map
+	    (fun x -> match x with Some x -> x)
+	    (List.filter (fun x -> x <> None) trees)
 	in
-	let trees = 
-	  match trees with 
+	let trees =
+	  match trees with
 	    [] -> None
 	  | _  -> Some (Expr.seq trees)
 	in
-	let (s, isSema) = 
-	  match s with 
+	let (s, isSema) =
+	  match s with
 	    Some s -> (s, true)
-	  | None -> 
+	  | None ->
 	      let (tuple, _) =
-		List.fold_right 
-		  (fun (_, omit, _, _) ((acc, i) as x) -> 
+		List.fold_right
+		  (fun (_, omit, _, _) ((acc, i) as x) ->
 		    if omit then x else (<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc, i+1)
-		  ) 
-		  p 
-		  ([], 0) 
+		  )
+		  p
+		  ([], 0)
 	      in
-	      match tuple with 
+	      match tuple with
 		[]  -> (<:expr< () >>, true)
 	      | [x] -> (x, false)
 	      |  _  -> (<:expr< ($list:tuple$) >>, true)
 	in
         match List.fold_right
-            (fun (flag, omit, binding, p) rightPart -> 
+            (fun (flag, omit, binding, p) rightPart ->
 	      let p =
-		match flag with 
+		match flag with
 	          None -> p
-		| Some (f, r) -> 
-		    let pwel = 
-		      match binding with 
-			None   -> [(<:patt< _ >>, Ploc.VaVal None, f)] 
+		| Some (f, r) ->
+		    let pwel =
+		      match binding with
+			None   -> [(<:patt< _ >>, Ploc.VaVal None, f)]
 		      | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, f)]
 		    in
 		    let pfun = <:expr< fun [$list:pwel$] >> in
-		    match r with 
+		    match r with
 		      None   -> <:expr< Ostap.Combinators.guard $p$ $pfun$ None >>
-		    | Some r -> 
-			let pwel = 
-			  match binding with 
-			    None   -> [(<:patt< _ >>, Ploc.VaVal None, r)] 
+		    | Some r ->
+			let pwel =
+			  match binding with
+			    None   -> [(<:patt< _ >>, Ploc.VaVal None, r)]
 			  | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
 			in
 			let rfun = <:expr< fun [$list:pwel$] >> in
 			<:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >>
 	      in
-	      let (n, right, combi, isMap) = 
-		match rightPart with 
+	      let (n, right, combi, isMap) =
+		match rightPart with
 		  None -> (0, s, (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
 		| Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.Combinators.seq $x$ $y$>>), false)
 	      in
 	      if not isSema && not omit && isMap && binding = None
 	      then Some (p, n+1)
-	      else 
-		let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in 
+	      else
+		let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in
 		let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
 		let pwel      = [(patt, Ploc.VaVal None, right)] in
 		let sfun      = <:expr< fun [$list:pwel$] >> in
 		Some (combi p sfun, n)
             ) p None
-	with 
-	  Some (expr, _) -> 
-	    (match g with 
+	with
+	  Some (expr, _) ->
+	    (match g with
 	      None   -> (expr, trees)
 	    | Some (g, None) ->
 		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees)
@@ -552,26 +552,26 @@ EXTEND
 	    | Some (g, Some r) ->
 		(<:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees)
 	    )
-	  | None -> raise (Failure "internal error: empty list must not be eaten")	
-    ] 
+	  | None -> raise (Failure "internal error: empty list must not be eaten")
+    ]
   ];
 
   o_prefix: [
-    [ "%"; s=STRING -> 
+    [ "%"; s=STRING ->
       let name   = <:expr< $str:s$ >> in
       let regexp = <:expr< $name$ ^ "\\\\\\\\b" >> in
       let look   = <:expr< _ostap_stream # regexp ($name$) ($regexp$) >> in
       let pwel = [
 	(
-	 <:patt<$lid:"_ostap_stream"$>>, 
-	 Ploc.VaVal None, 
-	 look 
+	 <:patt<$lid:"_ostap_stream"$>>,
+	 Ploc.VaVal None,
+	 look
 	)
       ] in
       let (e, s) = (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr name))) in
       ((None, true, None, e), s)
     ] |
-    [ m=OPT "-"; (p, s)=o_basic -> 
+    [ m=OPT "-"; (p, s)=o_basic ->
        let (binding, parse, f) = p in
        ((f, (m <> None), binding, parse), s)
     ]
@@ -583,15 +583,15 @@ EXTEND
 
   o_postfix: [
     [ o_primary ] |
-    [ (e, s)=o_postfix; "*"; folding=OPT o_folding -> 
+    [ (e, s)=o_postfix; "*"; folding=OPT o_folding ->
       (match folding with
-      | None                -> <:expr< Ostap.Combinators.many     $e$ >> 
+      | None                -> <:expr< Ostap.Combinators.many     $e$ >>
       | Some (init, folder) -> <:expr< Ostap.Combinators.manyFold $folder$ $init$ $e$ >>
       ), bindOption s (fun s -> Expr.star s)
     ] |
-    [ (e, s)=o_postfix; "+"; folding=OPT o_folding -> 
+    [ (e, s)=o_postfix; "+"; folding=OPT o_folding ->
       (match folding with
-       | None -> <:expr< Ostap.Combinators.some $e$ >> 
+       | None -> <:expr< Ostap.Combinators.some $e$ >>
        | Some (init, folder) -> <:expr< Ostap.Combinators.someFold $folder$ $init$ $e$ >>
       ), bindOption s (fun s -> Expr.plus s)
     ] |
@@ -605,34 +605,34 @@ EXTEND
   ];
 
   o_primary: [
-    [ (p, s)=o_reference; args=OPT o_parameters -> 
-          match args with 
+    [ (p, s)=o_reference; args=OPT o_parameters ->
+          match args with
              None           -> (p, Some s)
-           | Some (args, a) -> 
+           | Some (args, a) ->
 	       let args = args @ [<:expr< _ostap_stream >>] in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
 	       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
 	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
     ] |
-    [ p=UIDENT ->  
+    [ p=UIDENT ->
             let p' = "get" ^ p in
             let look = <:expr< _ostap_stream # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt< _ostap_stream >>, 
-	       Ploc.VaVal None, 
+	       <:patt< (_ostap_stream : stream) >>,
+	       Ploc.VaVal None,
 	       look
 	      )
 	    ] in
             (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
     ] |
-    [ p=STRING -> 
+    [ p=STRING ->
           let look = <:expr< _ostap_stream # look $str:p$ >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
+	     <:patt<$lid:"_ostap_stream"$>>,
+	     Ploc.VaVal None,
+	     look
 	    )
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
@@ -641,9 +641,9 @@ EXTEND
           let look = <:expr< _ostap_stream # look ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
+	     <:patt<$lid:"_ostap_stream"$>>,
+	     Ploc.VaVal None,
+	     look
 	    )
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
@@ -653,15 +653,15 @@ EXTEND
           let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>, 
-	     Ploc.VaVal None, 
-	     look 
+	     <:patt<$lid:"_ostap_stream"$>>,
+	     Ploc.VaVal None,
+	     look
 	    )
 	  ] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
     [ "$" -> (<:expr< Ostap.Combinators.lift >>, None) ] |
-    [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]   
+    [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s)) ]
   ];
 
   o_regexp_name: [[ ":"; e=expr -> e ]];
@@ -673,14 +673,14 @@ EXTEND
 
   o_parameters: [ [ p=LIST1 o_parameter -> List.split p ]];
 
-  o_parameter: [ 
-    [ "["; e=expr; "]" ->       
+  o_parameter: [
+    [ "["; e=expr; "]" ->
       List.iter Uses.register (get_ident e);
-      (e, Cache.cached (!printExpr e))      
-    ] 
+      (e, Cache.cached (!printExpr e))
+    ]
   ];
 
-  o_binding: [ 
+  o_binding: [
     [ "<"; p=patt; ">"; ":" -> p ] |
     [ p=LIDENT; ":" -> <:patt< $lid:p$ >> ]
   ];
@@ -695,8 +695,8 @@ EXTEND
 
 END;
 
-add_option "-tex"  (Arg.String 
-		      (fun s -> 
+add_option "-tex"  (Arg.String
+		      (fun s ->
 		  	   let p = !printBNF in
 
 			   let ouch = open_out (s ^ ".tex") in
@@ -706,17 +706,17 @@ add_option "-tex"  (Arg.String
                            printExpr := (fun e -> Eprinter.apply pr_expr Pprintf.empty_pc e);
 			   printPatt := (fun p -> Eprinter.apply pr_patt Pprintf.empty_pc p);
 
-			   printBNF  := 
-			     (fun name bnf ->                     
-                                  let ouch = 
-				    match name with 
+			   printBNF  :=
+			     (fun name bnf ->
+                                  let ouch =
+				    match name with
 				      None      -> open_out_gen [Open_append; Open_text] 0o66 (s ^ ".tex")
-				    | Some name -> open_out (s ^ "." ^ name ^ ".tex") 
+				    | Some name -> open_out (s ^ "." ^ name ^ ".tex")
 				  in
-			          fprintf ouch "%s" bnf; 
+			          fprintf ouch "%s" bnf;
 			          close_out ouch;
 			          p name bnf
 			     )
 		      )
-		   ) 
+		   )
            "<name> - print TeX grammar documentation to given file";

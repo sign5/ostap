@@ -5,31 +5,31 @@ open Errors
 open Result
 
 let return =
-  fun x k s -> k x s
+  fun x s k -> k x s
 
 let cast =
   function Failed x -> Failed x | _ -> invalid_arg "Ostap.cast"
 
 let map =
-  fun f p k s ->
-    match p k s with
+  fun f p s k ->
+    match p s k with
     | Parsed ((b, s'), e) -> Parsed ((f b, s'), e)
     | x -> cast x
 
 let (-->) p f = map f p
 
 let empty =
-  fun k -> return () k
+  fun s k -> return () s k
 
 let fail =
- fun r k s -> Failed r
+ fun r s k -> Failed r
 
 let lift =
-  fun k s -> Parsed ((s, s), None)
+  fun s k -> Parsed ((s, s), None)
 
 let sink =
-  fun p k s ->
-    match p k s with
+  fun p s k ->
+    match p s k with
     | Parsed ((s, _), f) -> Parsed ((s, s), f)
     | Failed x           -> Failed x
 
@@ -58,30 +58,30 @@ let memoresult =
 let memo =
   fun f ->
     let table : (stream, ('a, 'b) parser') Hashtbl.t = Hashtbl.create 16 in
-    fun k s ->
+    fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
                                                      | Some _                   -> acc
 					             | None when (s # equal s') -> Some p'
 					             | _                        -> None
 				   ) table None) with
-        | None -> let r = memoresult @@ (fun k -> f k s) in
+        | None -> let r = memoresult @@ (f s) in
                   Hashtbl.add table s r; r k
         | Some x -> x k
 
 let alt =
-  fun x y -> memo (fun k s -> (x k s) <@> (y k s))
+  fun x y -> memo (fun s k -> (x s k) <@> (y s k))
 
 let (<|>) = alt
 
 let seq =
-  fun x y k -> x (fun a -> y a k)
+  fun x y s k -> x s (fun a s' -> y a s' k)
 
 let (|>) = seq
 
 let opt =
-  fun p k s -> let s' = Oo.copy s in
+  fun p s k -> let s' = Oo.copy s in
                let k' = fun a s -> (k (Some a) s) <@> (k None s') in
-	       p k' s
+	       p s k'
 
 let (<?>) = opt
 
@@ -109,8 +109,8 @@ let some : ('a, 'b) parser -> ('a, 'b list) parser =
 let (<+>) = some
 *)
 let guard =
-  fun p f r k s ->
-    match p k s with
+  fun p f r s k ->
+    match p s k with
     | (Parsed ((b, _), _) as x) ->
         if f b
         then x

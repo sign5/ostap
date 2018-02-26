@@ -52,8 +52,8 @@
    end
 
  type ('a, 'b) k       = ('a, 'b) K.t
- type ('a, 'b) parser  = ('a, 'b) k -> stream -> ('b, stream) result
- type ('a, 'b) parser' = ('a, 'b) k ->           ('b, stream) result
+ type ('a, 'b) parser  = stream -> ('a, 'b) k -> ('b, stream) result
+ type ('a, 'b) parser' =           ('a, 'b) k -> ('b, stream) result
 
 let bind result f =
   match result with
