@@ -21,7 +21,7 @@ MODULE_INCLUDES += -I $(CAMLP5LIB)
 BFLAGS += -rectypes
 OFLAGS += -rectypes
 
-TARGET = 
+TARGET =
 
 CLEAN_EXTRA += $(addsuffix .cmi, $(TESTS)) $(addsuffix .cmo, $(TESTS))
 CLEAN_EXTRA += $(addsuffix $(EXEEXT), $(TESTS))

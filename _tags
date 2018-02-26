@@ -7,7 +7,6 @@ true: rectypes, package(re.str)
 <src/regexp.ml>: use_pa_log, package(logger.syntax)
 
 <util/Util.ml>:  use_pa_ostap, package(camlp5), for-pack(Ostap)
-<util/Util.mli>: for-pack(Ostap)
 
 #<util/*>: syntax(camlp5o), package(camlp5)
 
