@@ -38,7 +38,7 @@ class stream (s : char list) =
       fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
 
     method look : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-      fun c k ->
+      fun c k ->(*
       try
         if c = List.nth s p
         then k c {< p = p + 1 >}
@@ -51,11 +51,12 @@ class stream (s : char list) =
 	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
 	              | Parsed (res, _) -> Failed (Some err2)
 	              | Failed x        -> Failed x) in
-	  res1 <@> res2 (*
-          ({< p = p + 1; errors = Errors.addError (Errors.Delete (List.nth s p, p)) errors >} # look c k) <@>
-	  (k c {< p = p + 1; errors =  Errors.addError (Errors.Replace (c, p)) errors>})*)
+	  res1 <@> res2
 	end
-      with _ -> emptyResult
+      with _ -> emptyResult*)
+      if p = List.length s
+      then k c self
+      else emptyResult
 
     method getEOF : 'b . (unit -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun k ->

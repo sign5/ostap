@@ -563,7 +563,7 @@ EXTEND
       let look   = <:expr< _ostap_stream # regexp ($name$) ($regexp$) >> in
       let pwel = [
 	(
-	 <:patt<$lid:"_ostap_stream"$>>,
+	 <:patt<$lid:"_ostap_stream : #stream"$>>,
 	 Ploc.VaVal None,
 	 look
 	)
@@ -619,7 +619,7 @@ EXTEND
             let look = <:expr< _ostap_stream # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt< (_ostap_stream : stream) >>,
+	       <:patt< (_ostap_stream : #stream) >>,
 	       Ploc.VaVal None,
 	       look
 	      )
@@ -630,7 +630,7 @@ EXTEND
           let look = <:expr< _ostap_stream # look $str:p$ >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>,
+	     <:patt<$lid:"_ostap_stream : #stream"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
@@ -641,7 +641,7 @@ EXTEND
           let look = <:expr< _ostap_stream # look ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>,
+	     <:patt<$lid:"_ostap_stream : #stream"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
@@ -653,7 +653,7 @@ EXTEND
           let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream"$>>,
+	     <:patt<$lid:"_ostap_stream : #stream"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )

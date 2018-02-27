@@ -23,53 +23,11 @@ open Errors
 open Matcher
 
 class lexer (s : char list) =
-  object (self : 'self) inherit stream s
-(*
-    val p = 0
-    val errors = Errors.empty
-
-    method errors    = errors
-    method pos       = p
-    method str       = of_chars s
-    method chrs      = s
-    method rest      =
-      let rec f l p' = if (p' = 0) then l else f (List.tl l) (p' - 1)
-      in of_chars (f s p)
-
-    method correctErrors =
-      let rec cycle str offset = function
-      | []                            -> str
-      | Errors.Replace (c, pos) :: etc -> cycle str offset etc
-      | Errors.Delete (c, pos)  :: etc -> cycle str (offset + 1) etc
-      in cycle (of_chars s) 0 errors
-
-    method equal : lexer -> bool =
-      fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
-
-    method look : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-      fun c k ->
-      try
-        if c = List.nth s p
-        then k c {< p = p + 1 >}
-        else begin
-	  let err1 = Errors.Delete (List.nth s p, p) in
-	  let err2 = Errors.Replace (c, p) in
-	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # look c k) with
-	              | Parsed (res, _) -> Failed (Some err1)
-		      | Failed x        -> Failed x) in
-	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
-	              | Parsed (res, _) -> Failed (Some err2)
-	              | Failed x        -> Failed x) in
-	  res1 <@> res2 (*
-          ({< p = p + 1; errors = Errors.addError (Errors.Delete (List.nth s p, p)) errors >} # look c k) <@>
-	  (k c {< p = p + 1; errors =  Errors.addError (Errors.Replace (c, p)) errors>})*)
-	end
-      with _ -> emptyResult
-*)
+  object (self : 'self) inherit stream s as super
 
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
-
+(*
     method getIDENT : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
       fun k ->
         let str = of_chars s in
@@ -81,12 +39,13 @@ class lexer (s : char list) =
         if string_match ident str p
         then
 	  let m = matched_string str in
-	  k m {< p = p + (String.length m) >}
+	  k m (*{< p = p + 1(*String.length m*) >}*) self
         else
-	  emptyResult
+	  emptyResult*)
 
     method look : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-      fun c k ->
+      fun c k -> super # look c k
+      (*
         let str = of_chars s in
         let p =
 	  if string_match ws str 0
@@ -96,20 +55,21 @@ class lexer (s : char list) =
         if string_match (regexp (quote @@ of_chars @@ c :: [])) str p
         then
 	  let m = matched_string str in
-	  k c {< p = p + (String.length m) >}
+	  k c (*{< p = p + 1(*String.length m*) >}*)self
         else
 	  let err1 = Errors.Delete (List.nth s p, p) in
 	  let err2 = Errors.Replace (c, p) in
-	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # look c k) with
+	  let res1 = (match ((*{< p = p + 1; errors = Errors.addError err1 errors >}*)self # look c k) with
 		      | Parsed (res, _) -> Failed (Some err1)
 		      | Failed x        -> Failed x) in
-	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
+	  let res2 = (match (k c (*{< p = p + 1; errors =  Errors.addError err2 errors>}*)self) with
 		      | Parsed (res, _) -> Failed (Some err2)
 		      | Failed x        -> Failed x) in
-	  res1 <@> res2
+	  res1 <@> res2*)
 
     method getEOF : 'a . (unit -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
-      fun k ->
+      fun k -> super # getEOF k
+      (*
         let str = of_chars s in
         let p =
 	  if string_match ws str 0
@@ -118,16 +78,22 @@ class lexer (s : char list) =
         in
         if p = String.length str
         then k () self
-        else emptyResult
+        else emptyResult*)
+
+    method getIDENT : 'b . (unit -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+      fun k -> super # getEOF k(*
+        if p = List.length s
+        then k () self
+        else emptyResult*)
   end
 
-let id = ostap (IDENT -EOF)
+let id = ostap (IDENT)
 let _ =
-  begin match id (new lexer (of_string "   hasToBeParsed ")) (fun res s -> Parsed (("Yeah", s), None)) with
-  | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
+  begin match id (new lexer (of_string "   hasToBeParsed ")) (fun res s -> Parsed ((1, s), None)) with
+  | Parsed ((str, _), _) -> Printf.printf "Parsed: \n"
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer (of_string "   123 ")) (fun res s -> Parsed (("Yeah", s), None)) with
-  | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
+  begin match id (new lexer (of_string "   123 ")) (fun res s -> Parsed ((1, s), None)) with
+  | Parsed ((str, _), _) -> Printf.printf "Parsed: \n"
   | _ -> Printf.printf "Failed.\n"
   end;
