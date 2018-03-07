@@ -57,7 +57,7 @@ let memoresult =
 
 let memo =
   fun f ->
-    let table : (#stream, ('a, 'b) parser') Hashtbl.t = Hashtbl.create 16 in
+    let table : (#stream, ('a, 'b, #stream) parser') Hashtbl.t = Hashtbl.create 16 in
     fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
                                                      | Some _                   -> acc

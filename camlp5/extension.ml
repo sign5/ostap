@@ -563,7 +563,7 @@ EXTEND
       let look   = <:expr< _ostap_stream # regexp ($name$) ($regexp$) >> in
       let pwel = [
 	(
-	 <:patt<$lid:"_ostap_stream : #stream"$>>,
+	 <:patt<$lid:"(_ostap_stream : #stream)"$>>,
 	 Ploc.VaVal None,
 	 look
 	)
@@ -611,7 +611,7 @@ EXTEND
            | Some (args, a) ->
 	       let args = args @ [<:expr< _ostap_stream >>] in
 	       let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
-	       let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
+	       let pwel = [(<:patt< (_ostap_stream : #stream) >>, Ploc.VaVal None, body)] in
 	       (<:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)))
     ] |
     [ p=UIDENT ->
@@ -641,7 +641,7 @@ EXTEND
           let look = <:expr< _ostap_stream # look ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream : #stream"$>>,
+	     <:patt<$lid:"(_ostap_stream : #stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
@@ -653,7 +653,7 @@ EXTEND
           let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"_ostap_stream : #stream"$>>,
+	     <:patt<$lid:"(_ostap_stream : #stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
