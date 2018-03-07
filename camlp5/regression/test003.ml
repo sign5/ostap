@@ -60,6 +60,7 @@ class lexer (s : char list) =
   end
 
 let id = ostap ((IDENT | "123") -EOF)
+
 let _ =
   begin match id (new lexer (of_string "left ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str

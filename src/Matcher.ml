@@ -34,7 +34,7 @@ class stream (s : char list) =
       | Errors.Delete (c, pos)  :: etc -> cycle str (offset + 1) etc
       in cycle (of_chars s) 0 errors
 
-    method equal : stream -> bool =
+    method equal : 'self -> bool =
       fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
 
     method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =

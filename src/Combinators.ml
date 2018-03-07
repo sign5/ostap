@@ -35,7 +35,7 @@ let sink =
 
 let memoresult =
   fun p ->
-    let ss : (#stream * 'a) list ref = ref      [] in
+    let ss : ('stream * 'a) list ref = ref      [] in
     let ks :                K.ks ref = ref K.empty in
     fun k ->
       if K.length !ks = 0
@@ -57,7 +57,7 @@ let memoresult =
 
 let memo =
   fun f ->
-    let table : (#stream, ('a, 'b, #stream) parser') Hashtbl.t = Hashtbl.create 16 in
+    let table : ('stream, ('a, 'b, 'stream) parser') Hashtbl.t = Hashtbl.create 16 in
     fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
                                                      | Some _                   -> acc
