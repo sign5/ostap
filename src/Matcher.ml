@@ -37,15 +37,23 @@ class stream (s : char list) =
     method equal : stream -> bool =
       fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
 
-    method look : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-      fun c k ->(*
+    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+      fun cs k ->
+        let rec loop chars result =
+    	  match chars with
+    	  | [] -> k (of_chars result)
+    	  | c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
+    	in loop (of_string cs) [] self
+
+    method lookChar : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+      fun c k ->
       try
         if c = List.nth s p
         then k c {< p = p + 1 >}
         else begin
 	  let err1 = Errors.Delete (List.nth s p, p) in
 	  let err2 = Errors.Replace (c, p) in
-	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # look c k) with
+	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # lookChar c k) with
 	              | Parsed (res, _) -> Failed (Some err1)
 		      | Failed x        -> Failed x) in
 	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
@@ -53,14 +61,11 @@ class stream (s : char list) =
 	              | Failed x        -> Failed x) in
 	  res1 <@> res2
 	end
-      with _ -> emptyResult*)
-      if p = List.length s
-      then k c self
-      else emptyResult
+      with _ -> emptyResult
 
-    method getEOF : 'b . (unit -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun k ->
         if p = List.length s
-        then k () self
+        then k "EOF" self
         else emptyResult
   end

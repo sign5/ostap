@@ -375,7 +375,7 @@ EXTEND
   expr: LEVEL "expr1" [
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
       let body = <:expr< $p$ _ostap_stream >> in
-      let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
+      let pwel = [(<:patt< (_ostap_stream : #stream) >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f
@@ -401,8 +401,8 @@ EXTEND
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let args' =
 	match args with
-	  None   -> [<:patt< _ostap_stream >>]
-	| Some l -> l @ [<:patt< _ostap_stream >>]
+	  None   -> [<:patt< (_ostap_stream1 : #stream) >>]
+	| Some l -> l @ [<:patt< (_ostap_stream1 : #stream) >>]
       in
       let rule =
 	List.fold_right
@@ -411,7 +411,7 @@ EXTEND
 	    <:expr< fun [$list:pwel$] >>
 	  )
 	  args'
-	  <:expr< $p$ _ostap_stream >>
+	  <:expr< $p$ _ostap_stream1 >>
       in
       let p = match args with
             None      -> []
@@ -619,7 +619,7 @@ EXTEND
             let look = <:expr< _ostap_stream # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt< (_ostap_stream : #stream) >>,
+	       <:patt<$lid:"(_ostap_stream : < " ^ p' ^ " : 'a. (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result; .. > as 'self)"$>>,
 	       Ploc.VaVal None,
 	       look
 	      )
@@ -629,8 +629,8 @@ EXTEND
     [ p=STRING ->
           let look = <:expr< _ostap_stream # look $str:p$ >> in
           let pwel = [
-	    (
-	     <:patt<$lid:"_ostap_stream : #stream"$>>,
+	     (
+	     <:patt<$lid:"(_ostap_stream : #stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )

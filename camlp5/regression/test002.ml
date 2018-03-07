@@ -2,15 +2,15 @@
  * Test002: simplest ocamlyard test.
  * Copyright (C) 2006
  * Dmitri Boulytchev, St.Petersburg State University
- * 
+ *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License version 2, as published by the Free Software Foundation.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
@@ -18,69 +18,63 @@
 open Re_str
 open Ostap
 open Types
+open Result
+open Errors
+open Matcher
 
-class lexer s p = 
-  object
+class lexer (s : char list) =
+  object (self : 'self) inherit stream s as super
 
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
-    method getIDENT =
-      let p =
-	if string_match ws s p 
-	then p+(String.length (matched_string s))
-	else p
-      in
-      if string_match ident s p
-      then 
-	let m = matched_string s in
-	Parsed ((m, new lexer s (p+(String.length m))), None)
-      else
-	Failed (Reason.reason (Msg.phrase "identifier expected"))
+    method getIDENT : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
+      fun k ->
+	let str = of_chars s in
+        let p =
+ 	  if string_match ws str 0
+ 	  then (String.length (matched_string str))
+ 	  else 0
+        in
+        if string_match ident str p
+        then
+	  let m = matched_string str in
+	  k m {< p = p + String.length m >}
+        else
+	  emptyResult
 
-    method look x =
-      let p =
-	if string_match ws s p 
-	then p+(String.length (matched_string s))
-	else p
-      in
-      if string_match (regexp (quote x)) s p
-      then 
-	let m = matched_string s in
-	Parsed ((m, new lexer s (p+(String.length m))), None)
-      else
-	Failed (Reason.reason (Msg.orphan "%0 expected" [|x|]))
+    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+      fun cs k -> super # look cs k
 
-    method getEOF =
-      let p =
-	if string_match ws s p 
-	then p+(String.length (matched_string s))
-	else p
-      in
-      if p = String.length s 
-      then
-	Parsed (("<EOF>", new lexer s p), None)
-      else
-	Failed (Reason.reason (Msg.phrase "EOF expected"))
-      
-  end
+     method getEOF : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
+       fun k ->
+         let str = of_chars s in
+         let p =
+ 	  if string_match ws str 0
+ 	  then (String.length (matched_string str))
+ 	  else 0
+         in
+         if p = String.length str
+         then k "EOF" self
+         else emptyResult
+   end
 
 let id = ostap (x:IDENT "." y:IDENT -EOF {Printf.sprintf "%s.%s" x y})
+
 let _ =
-  begin match id (new lexer "left . right" 0) with
+  begin match id (new lexer (of_string "left . right")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "left .right" 0) with
+  begin match id (new lexer (of_string "left .right")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "left.right" 0) with
+  begin match id (new lexer (of_string "left.right")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "   123 " 0) with
+  begin match id (new lexer (of_string "   123 ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  
