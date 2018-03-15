@@ -63,7 +63,30 @@ class lexer (s : char list) =
 let list = ostap (hd:IDENT tl:iter[ostap(IDENT)] {hd :: tl})
 let m = ostap (list -EOF {[]}) *)
 
- let list = ostap (hd:IDENT tl:(IDENT)* {hd :: tl})
+ (* let list = ostap (hd:IDENT tl:(IDENT)* {hd :: tl}) *)
+ let list (_ostap_stream : #stream) =
+   Ostap.Combinators.seq
+     (fun
+        (_ostap_stream :
+          <
+            getIDENT
+              :'a .
+                 (string -> 'self -> ('a,'self) result) -> ('a,'self) result  ;..
+            > as 'self)
+         -> _ostap_stream#getIDENT)
+     (fun (hd as _1)  ->
+        Ostap.Combinators.map (fun (tl as _0)  -> hd :: tl)
+          (Ostap.Combinators.many
+             (fun
+                (_ostap_stream :
+                  <
+                    getIDENT
+                      :'a .
+                         (string -> 'self -> ('a,'self) result) ->
+                           ('a,'self) result  ;.. >
+                    as 'self)
+                 -> _ostap_stream#getIDENT))) _ostap_stream
+
 (* let m = ostap (list -EOF {[]}) *)
 
 (* let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
