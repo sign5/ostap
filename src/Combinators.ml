@@ -90,13 +90,32 @@ let rec manyFold =
                   (p                 |> (fun xp  ->
 	           manyFold f init p |> (fun xps ->
 		   return (f xp xps))))
-(*
-let many : ('a, 'b) parser -> ('a, 'b list) parser =
-  fun p ->
-    (manyFold (fun x acc -> fun l -> acc (x :: l)) (fun x -> x) p) --> (fun t -> t [])
 
-let (<*>) = many
+let rec many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser =
+  fun p s k ->
+     let p' =
+       fun s k -> match p s k with
+                  | Parsed ((b, s'), e) -> Parsed ((b :: [], s'), None)
+	          | x                   -> Failed None in
+     let rec loop result s' k' =
+      k' (List.rev result) s' <@>
+      (p' |> (fun (res : 'a) -> loop (res :: result))) s' k'
+    in loop [] s k
+    (* match p s (fun x s -> match k x s with
+  	                             | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), None)
+  	                             | x                   -> Failed None) with
+    | Parsed ((b, s'), e) -> Parsed ((b :: [], s'), None)
+    | x                   -> Failed None *)
+  (*
+    match p s (fun x s -> match k x s with
+	       | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), e)
+	       | x -> x
+	       ) with
+    | Parsed ((b, s'), e) -> invalid_arg "" (*Parsed ((b :: [], s'), e)*)
+    | x -> invalid_arg "" (*x*)
 *)
+let (<*>) = many
+
 let someFold =
   fun f init p -> p                 |> (fun xp  ->
 	          manyFold f init p |> (fun xps ->

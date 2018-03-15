@@ -31,15 +31,15 @@ class lexer (s : char list) =
     method getIDENT : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
       fun k ->
         let str = of_chars s in
-        let p =
-	  if string_match ws str 0
-	  then (String.length (matched_string str))
-	  else 0
+        let p' =
+	  if string_match ws str p
+	  then p + (String.length (matched_string str))
+	  else p
         in
-        if string_match ident str p
+        if string_match ident str p'
         then
 	  let m = matched_string str in
-	  k m {< p = p + String.length m >}
+	  k m {< p = p' + String.length m >}
         else
 	  emptyResult
 
@@ -49,12 +49,12 @@ class lexer (s : char list) =
     method getEOF : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
       fun k ->
         let str = of_chars s in
-        let p =
-	  if string_match ws str 0
-	  then (String.length (matched_string str))
-	  else 0
+        let p' =
+	  if string_match ws str p
+	  then p + (String.length (matched_string str))
+	  else p
         in
-        if p = String.length str
+        if p' = String.length str
         then k "EOF" self
         else emptyResult
   end
@@ -62,7 +62,7 @@ class lexer (s : char list) =
 let id = ostap (IDENT -EOF)
 
 let _ =
-  begin match id (new lexer (of_string "   hasToBeParsed ")) (fun res s -> Parsed ((res, s), None)) with
+  begin match id (new lexer (of_string "  hasToBeParsed  ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;

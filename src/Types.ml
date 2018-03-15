@@ -33,7 +33,7 @@
    end =
    struct
 
-     type ('a, 'b, 'stream) t = 'a -> 'stream -> ('b, 'stream) result
+     type ('a, 'b, 'stream) t = 'a -> 'stream -> ('b , 'stream) result
 
      module Ks = Set.Make (
        struct

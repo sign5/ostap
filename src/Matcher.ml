@@ -41,7 +41,7 @@ class stream (s : char list) =
       fun cs k ->
         let rec loop chars result =
     	  match chars with
-    	  | [] -> k (of_chars result)
+    	  | [] -> k @@ of_chars @@ List.rev @@ result
     	  | c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
     	in loop (of_string cs) [] self
 
@@ -55,9 +55,11 @@ class stream (s : char list) =
 	  let err2 = Errors.Replace (c, p) in
 	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # lookChar c k) with
 	              | Parsed (res, _) -> Failed (Some err1)
+		      | Failed None     -> Failed (Some err1)
 		      | Failed x        -> Failed x) in
 	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
 	              | Parsed (res, _) -> Failed (Some err2)
+		      | Failed None     -> Failed (Some err1)
 	              | Failed x        -> Failed x) in
 	  res1 <@> res2
 	end
