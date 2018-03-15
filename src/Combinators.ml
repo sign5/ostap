@@ -91,29 +91,32 @@ let rec manyFold =
 	           manyFold f init p |> (fun xps ->
 		   return (f xp xps))))
 
-let rec many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser =
-  fun p s k ->
-     let p' =
-       fun s k -> match p s k with
-                  | Parsed ((b, s'), e) -> Parsed ((b :: [], s'), None)
-	          | x                   -> Failed None in
-     let rec loop result s' k' =
-      k' (List.rev result) s' <@>
-      (p' |> (fun (res : 'a) -> loop (res :: result))) s' k'
-    in loop [] s k
-    (* match p s (fun x s -> match k x s with
-  	                             | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), None)
-  	                             | x                   -> Failed None) with
-    | Parsed ((b, s'), e) -> Parsed ((b :: [], s'), None)
-    | x                   -> Failed None *)
-  (*
-    match p s (fun x s -> match k x s with
-	       | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), e)
-	       | x -> x
-	       ) with
-    | Parsed ((b, s'), e) -> invalid_arg "" (*Parsed ((b :: [], s'), e)*)
-    | x -> invalid_arg "" (*x*)
-*)
+module T :
+sig
+ val many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser
+end =
+  struct
+  let rec many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser =
+    fun p s k ->
+      let result : ('b list, 'stream) result ref = ref (Failed None) in
+      let rec loop alist stream =
+        p stream (fun a stream' ->
+                    let alist' = List.rev (a :: (List.rev alist)) in
+                    let curResult = k (alist') stream' in
+                    result := (match curResult, !result with
+  		             | Parsed ((b, s'), opt1), Failed opt2 -> Parsed ((b, s'), cmp opt1 opt2)
+  			     | Failed opt1, Parsed ((bs, s'), opt2) -> Parsed ((bs, s'), cmp opt1 opt2)
+  			     | Parsed ((b, s'), opt1), Parsed ((bs, _), opt2) -> Parsed ((b @ bs, s'), cmp opt1 opt2)
+  			     | Failed opt1, Failed opt2 -> Failed (cmp opt1 opt2));
+  		  let tmp = loop (alist') stream' in
+                    match curResult with
+  		  | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), e)
+  	          | x                   -> Failed None)
+      in
+      let tmp = loop [] s in
+      (k [] s) <@> !result
+ end
+open T
 let (<*>) = many
 
 let someFold =

@@ -59,39 +59,9 @@ class lexer (s : char list) =
         else emptyResult
   end
 
-(* let rec iter p = ostap (h:p tl:iter[p] {h::tl} | !(Combinators.empty) {[]})
-let list = ostap (hd:IDENT tl:iter[ostap(IDENT)] {hd :: tl})
-let m = ostap (list -EOF {[]}) *)
+let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
+let m = ostap (list -EOF)
 
- (* let list = ostap (hd:IDENT tl:(IDENT)* {hd :: tl}) *)
- let list (_ostap_stream : #stream) =
-   Ostap.Combinators.seq
-     (fun
-        (_ostap_stream :
-          <
-            getIDENT
-              :'a .
-                 (string -> 'self -> ('a,'self) result) -> ('a,'self) result  ;..
-            > as 'self)
-         -> _ostap_stream#getIDENT)
-     (fun (hd as _1)  ->
-        Ostap.Combinators.map (fun (tl as _0)  -> hd :: tl)
-          (Ostap.Combinators.many
-             (fun
-                (_ostap_stream :
-                  <
-                    getIDENT
-                      :'a .
-                         (string -> 'self -> ('a,'self) result) ->
-                           ('a,'self) result  ;.. >
-                    as 'self)
-                 -> _ostap_stream#getIDENT))) _ostap_stream
-
-(* let m = ostap (list -EOF {[]}) *)
-
-(* let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
-let m = ostap (list -EOF) *)
-(*
 let _ =
   begin match m (new lexer (of_string "r,t , f , g ,     u, i ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
@@ -101,4 +71,3 @@ let _ =
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
-*)

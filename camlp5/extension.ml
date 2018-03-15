@@ -585,7 +585,7 @@ EXTEND
     [ o_primary ] |
     [ (e, s)=o_postfix; "*"; folding=OPT o_folding ->
       (match folding with
-      | None                -> <:expr< Ostap.Combinators.many     $e$ >>
+      | None                -> <:expr< Ostap.Combinators.T.many     $e$ >>
       | Some (init, folder) -> <:expr< Ostap.Combinators.manyFold $folder$ $init$ $e$ >>
       ), bindOption s (fun s -> Expr.star s)
     ] |
