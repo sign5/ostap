@@ -67,7 +67,7 @@ let _ =
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match m (new lexer (of_string " abc ")) (fun res s -> Parsed ((res, s), None)) with
+  begin match m (new lexer (of_string " abc  ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;

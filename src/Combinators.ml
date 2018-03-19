@@ -12,9 +12,7 @@ let cast =
 
 let map =
   fun f p s k ->
-    match p s k with
-    | Parsed ((b, s'), e) -> Parsed ((f b, s'), e)
-    | x -> cast x
+    p s (fun a s -> k (f a) s)
 
 let (-->) p f = map f p
 
@@ -93,28 +91,27 @@ let rec manyFold =
 
 module T :
 sig
- val many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser
+ val many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser
 end =
   struct
-  let rec many : ('a, 'b, 's) parser -> ('a list, 'b list, 's) parser =
+  let rec many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser =
     fun p s k ->
-      let result : ('b list, 'stream) result ref = ref (Failed None) in
+      let result : ('b, 'stream) result ref = ref (k [] s) in
       let rec loop alist stream =
         p stream (fun a stream' ->
                     let alist' = List.rev (a :: (List.rev alist)) in
                     let curResult = k (alist') stream' in
+		    result := curResult <@> !result;(*
                     result := (match curResult, !result with
-  		             | Parsed ((b, s'), opt1), Failed opt2 -> Parsed ((b, s'), cmp opt1 opt2)
-  			     | Failed opt1, Parsed ((bs, s'), opt2) -> Parsed ((bs, s'), cmp opt1 opt2)
-  			     | Parsed ((b, s'), opt1), Parsed ((bs, _), opt2) -> Parsed ((b @ bs, s'), cmp opt1 opt2)
-  			     | Failed opt1, Failed opt2 -> Failed (cmp opt1 opt2));
+  		             | Parsed ((b, s'), opt1), Failed opt2             -> Parsed ((b, s'), cmp opt1 opt2)
+  			     | Failed opt1,            Parsed ((bs, s'), opt2) -> Parsed ((bs, s'), cmp opt1 opt2)
+  			     | Parsed ((b, s'), opt1), Parsed ((bs, _), opt2)  -> Parsed ((b @ bs, s'), cmp opt1 opt2)
+  			     | Failed opt1,            Failed opt2             -> Failed (cmp opt1 opt2));*)
   		  let tmp = loop (alist') stream' in
-                    match curResult with
-  		  | Parsed ((b, s'), e) -> Parsed ((List.hd b, s'), e)
-  	          | x                   -> Failed None)
+                  curResult)
       in
       let tmp = loop [] s in
-      (k [] s) <@> !result
+      !result
  end
 open T
 let (<*>) = many

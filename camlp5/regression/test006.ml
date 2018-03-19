@@ -28,7 +28,7 @@ class lexer (s : char list) =
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
-    method getIDENT : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun k ->
 	let str = of_chars s in
         let p' =
@@ -46,7 +46,7 @@ class lexer (s : char list) =
     method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun cs k -> super # look cs k
 
-    method getEOF : 'a . (string -> 'self -> ('a, 'self) result) -> ('a, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun k ->
         let str = of_chars s in
         let p' =
@@ -60,8 +60,8 @@ class lexer (s : char list) =
   end
 
 let list1 = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
-(* let list = ostap (hd:list1  tl:(-";" list1)* {hd :: tl}) *)
-let list = ostap (hd:list1  tl:(list1)* {hd :: tl})
+let list = ostap (hd:list1  tl:(-";" list1)* {hd :: tl})
+
 let m = ostap (list -EOF)
 let _ =
   begin match m (new lexer (of_string "r,t , f , g ,     u, i; u, g ")) (fun res s -> Parsed ((res, s), None))  with
