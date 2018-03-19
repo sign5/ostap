@@ -43,8 +43,18 @@ class lexer (s : char list) =
         else
 	  emptyResult
 
-    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method supLook : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun cs k -> super # look cs k
+
+    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+      fun cs k ->
+	let str = of_chars s in
+	let p' =
+      if string_match ws str p
+      then p + (String.length (matched_string str))
+      else p
+	in
+    {< p = p'>} # supLook cs k
 
     method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
       fun k ->

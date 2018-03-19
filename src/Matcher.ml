@@ -50,19 +50,21 @@ class stream (s : char list) =
       try
         if c = List.nth s p
         then k c {< p = p + 1 >}
-        else begin
+        else (*begin
 	  let err1 = Errors.Delete (List.nth s p, p) in
 	  let err2 = Errors.Replace (c, p) in
 	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # lookChar c k) with
+	              | _               -> Failed None
 	              | Parsed (res, _) -> Failed (Some err1)
 		      | Failed None     -> Failed (Some err1)
 		      | Failed x        -> Failed x) in
 	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
+	              | _               -> Failed None
 	              | Parsed (res, _) -> Failed (Some err2)
 		      | Failed None     -> Failed (Some err1)
 	              | Failed x        -> Failed x) in
 	  res1 <@> res2
-	end
+	end*) Failed (Some (Errors.Replace (c, p)))
       with _ -> emptyResult
 
     method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
