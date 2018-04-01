@@ -263,7 +263,7 @@ module Cache =
     let compress x =
       let b = Buffer.create 1024 in
       let f = ref false in
-      for i=0 to String.length x - 1
+      for i = 0 to String.length x - 1
       do
           match x.[i] with
 	    ' ' -> if !f then () else (Buffer.add_char b ' '; f := true)
@@ -397,21 +397,103 @@ EXTEND
     ]
   ];
 
+(*
+  str_item: LEVEL "top" [
+    [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" ->
+      let (rules, defs, nameList, fakeNameList) = rules in
+      !printBNF doc (texDefList defs);
+      <:str_item< value $opt:true$ $list:rules$ >>
+    ]
+  ];
+
+  let_binding: [
+    [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" ->
+      let ((name, rule), def) = rule in
+      !printBNF doc (texDef def);
+      (<:patt< $lid:name$ >>, rule)
+    ]
+  ];
+
+  expr: LEVEL "expr1" [
+    [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
+      let body = <:expr< $p$ _ostap_stream >> in
+      let pwel = [(<:patt< (_ostap_stream : #stream) >>, Ploc.VaVal None, body)] in
+      let f = <:expr< fun [$list:pwel$] >> in
+      (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
+      f
+    ]
+  ];
+
+  expr: LEVEL "expr1" [
+    [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
+      let (rules, defs, nameList, fakeNameList) = rules in
+      !printBNF doc (texDefList defs);
+      let fix =
+        let pwel = [(fakeNameList, Ploc.VaVal None, <:expr< Ostap.Combinators.fixPoly >>)] in <:expr< fun [$list:pwel$] >>
+      in
+      let insideExpr = <:expr< let $opt:true$ $list:rules$ in $fix$ >> in
+      let newRules = [(nameList, insideExpr)] in
+      <:expr< let $opt:true$ $list:newRules$ in $e$ >>
+     ]
+  ];
+
+  o_rules: [
+    [ rules=LIST1 o_rule SEP ";" ->
+      let (rules, defs) = List.split rules in
+      let (names, z) = List.split rules in
+      let names = List.map (fun name -> <:patt< $lid:name$ >>) names in
+      let nameList = <:patt< [| $list:names$ |] >> in
+      let fakeNames =
+        let rec loop n =
+          if n = 0
+	  then []
+	  else
+	   <:patt< ($lid:"_fakename" ^ (string_of_int n)$) >> :: (loop (n - 1))
+	in loop (List.length names)
+      in
+      let fakeNameList = <:patt< [| $list:fakeNames$ |] >> in
+      (List.map	(fun (name, rule) ->
+                   let pwel = [(nameList, Ploc.VaVal None, rule)] in
+		   (name, <:expr< fun [$list:pwel$] >>)) (List.combine fakeNames z), defs, nameList, fakeNameList)
+    ]
+  ];
+*)
   o_rule: [
     [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
       let args' =
 	match args with
-	  None   -> [<:patt< (_ostap_stream1 : #stream) >>]
-	| Some l -> l @ [<:patt< (_ostap_stream1 : #stream) >>]
+	  None   -> []
+	| Some l -> l
       in
       let rule =
-	List.fold_right
-	  (fun x f ->
-	    let pwel = [(x, Ploc.VaVal None, f)] in
-	    <:expr< fun [$list:pwel$] >>
-	  )
-	  args'
-	  <:expr< $p$ _ostap_stream1 >>
+        let rec leftPartLoop n acc =
+	  if n = 0
+	  then acc
+	  else
+	    let pwel = [(<:patt< ($lid:"_x" ^ (string_of_int n)$) >>, Ploc.VaVal None, acc)] in
+	    leftPartLoop (n - 1) <:expr< fun [$list:pwel$] >>
+	in
+	let rightPart =
+  	  let rec rightPartLoop n acc =
+  	    if n > List.length args'
+  	    then acc
+  	    else rightPartLoop (n + 1) <:expr< $acc$ $lid:"_x" ^ (string_of_int n)$>>
+  	  in
+	  let fixed =
+    	    List.fold_right
+    	      (fun x f ->
+    	        let pwel = [(x, Ploc.VaVal None, f)] in
+    	        <:expr< fun [$list:pwel$] >>
+    	      )
+    	      ([<:patt< $lid:name$ >>] @ args')
+    	      p
+          in
+  	  let tmp = rightPartLoop 1 <:expr< Ostap.Combinators.fix $fixed$ >>
+  	  in
+  	  <:expr< $tmp$ _ostap_stream >>
+        in
+	let pwel = [(<:patt< (_ostap_stream : #stream) >>, Ploc.VaVal None, rightPart)] in
+	leftPartLoop (List.length args') <:expr< fun [$list:pwel$]>>
       in
       let p = match args with
             None      -> []
@@ -585,7 +667,7 @@ EXTEND
     [ o_primary ] |
     [ (e, s)=o_postfix; "*"; folding=OPT o_folding ->
       (match folding with
-      | None                -> <:expr< Ostap.Combinators.T.many     $e$ >>
+      | None                -> <:expr< Ostap.Combinators.many     $e$ >>
       | Some (init, folder) -> <:expr< Ostap.Combinators.manyFold $folder$ $init$ $e$ >>
       ), bindOption s (fun s -> Expr.star s)
     ] |

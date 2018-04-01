@@ -71,15 +71,13 @@ class lexer (s : char list) =
 
 module X =
   struct
-
     let parse = ostap (",")
-
   end
 
 class ['a] ppp =
   object (self)
 
-    method list s (elem:'a) = let ostap (l[elem]: hd:elem tl:(- !(X.parse) elem)* {hd :: tl}) in l s elem
+    method list s k (elem:'a) = let ostap (l[elem]: hd:elem tl:(- !(X.parse) elem)* {hd :: tl}) in l s k elem
     method m = ostap (!(self#list)[ostap (IDENT)] -EOF)
 
   end

@@ -23,7 +23,7 @@ let fail =
  fun r s k -> Failed r
 
 let lift =
-  fun s k -> Parsed ((s, s), None)
+  fun s k -> k s s
 
 let sink =
   fun p s k ->
@@ -58,10 +58,10 @@ let memo =
     let table : ('stream, ('a, 'b, 'stream) parser') Hashtbl.t = Hashtbl.create 16 in
     fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
-                                                     | Some _                   -> acc
-					             | None when (s # equal s') -> Some p'
-					             | _                        -> None
-				   ) table None) with
+                                            | Some _                   -> acc
+					    | None when (s # equal s') -> Some p'
+					    | _                        -> None
+			  ) table None) with
         | None -> let r = memoresult @@ (f s) in
                   Hashtbl.add table s r; r k
         | Some x -> x k
@@ -89,31 +89,25 @@ let rec manyFold =
 	           manyFold f init p |> (fun xps ->
 		   return (f xp xps))))
 
-module T :
-sig
- val many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser
-end =
-  struct
-  let rec many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser =
-    fun p s k ->
-      let result : ('b, 'stream) result ref = ref (k [] s) in
-      let rec loop alist stream =
-        p stream (fun a stream' ->
-                    let alist' = List.rev (a :: (List.rev alist)) in
-                    let curResult = k (alist') stream' in
-		    result := curResult <@> !result;(*
-                    result := (match curResult, !result with
+let rec many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser =
+  fun p s k ->
+    let result : ('b, 'stream) result ref = ref (k [] s) in
+    let rec loop alist stream =
+      p stream (fun a stream' ->
+                  let alist' = List.rev (a :: (List.rev alist)) in
+                  let curResult = k (alist') stream' in
+		  result := curResult <@> !result;(*
+                  result := (match curResult, !result with
   		             | Parsed ((b, s'), opt1), Failed opt2             -> Parsed ((b, s'), cmp opt1 opt2)
   			     | Failed opt1,            Parsed ((bs, s'), opt2) -> Parsed ((bs, s'), cmp opt1 opt2)
   			     | Parsed ((b, s'), opt1), Parsed ((bs, _), opt2)  -> Parsed ((b @ bs, s'), cmp opt1 opt2)
   			     | Failed opt1,            Failed opt2             -> Failed (cmp opt1 opt2));*)
   		  let tmp = loop (alist') stream' in
                   curResult)
-      in
-      let tmp = loop [] s in
-      !result
- end
-open T
+    in
+    let tmp = loop [] s in
+    !result
+
 let (<*>) = many
 
 let someFold =
