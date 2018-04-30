@@ -5,6 +5,7 @@ open Result
 open Errors
 open Matcher
 open Printf
+open Lazy
 
 class lexer (s : char list) =
   let const = regexp "[0-9]+" in

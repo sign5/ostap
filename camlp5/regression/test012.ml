@@ -52,21 +52,50 @@ class lexer (s : char list) =
 ostap (
 
   expr [nlevels][operator][primary][level]:
-    {nlevels = level} => p:primary {`Primary p}
+    {nlevels = level} => p:primary {1}
   | {nlevels > level} => left:expr[nlevels][operator][primary][level+1]
        right:(
           operator[level]
           expr[nlevels][operator][primary][level]
        )?
+       {1}
+)
+
+ostap (
+  primary:
+    i:IDENT             {1}
+  | c:CONST             {1}
+  | -"(" intExpr -")"
+  | "-" p:primary       {1};
+
+  operator[n]:
+     {n == 0} => ("+" {1} | "-" {1})
+   | {n == 1} => ("*" {1} | "/" {1})
+  ;
+  intExpr: p:expr[2][operator][primary][0];
+  main: intExpr -EOF
+)
+
+let _ =
+  match main (new lexer (of_string "a+b+c")) (fun res s -> Parsed ((res, s), None)) with
+  | Parsed _ -> Printf.printf "Parsed.\n"
+  | Failed _ -> Printf.printf "Not parsed."
+(*
+ostap (
+
+  expr [nlevels](*[operator][primary]*)[level]:
+    {nlevels = level} => p:primary {`Primary p}
+  | {nlevels > level} => left:expr[nlevels](*[operator][primary]*)[level+1]
+       right:(
+          operator[level]
+          expr[nlevels](*[operator][primary]*)[level]
+       )?
        {
         match right with
 	| None -> left
 	| Some (op, right) -> `Operator (left, op, right)
-       }
+};
 
-)
-
-ostap (
   primary:
     i:IDENT             {`Ident i}
   | c:CONST             {`Const c}
@@ -77,11 +106,11 @@ ostap (
      {n == 0} => ("+" {`Plus} | "-" {`Minus})
    | {n == 1} => ("*" {`Mul } | "/" {`Div  })
   ;
-  intExpr: p:expr[2][operator][primary][0];
+  intExpr: p:expr[2](*[operator][primary]*)[0];
   main: intExpr -EOF
 )
 
 let _ =
   match main (new lexer (of_string "a+b+c")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
-  | Failed _ -> Printf.printf "Not parsed."
+  | Failed _ -> Printf.printf "Not parsed." *)

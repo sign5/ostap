@@ -123,12 +123,13 @@ let (<+>) = some
 *)
 let guard =
   fun p f r s k ->
-    match p s k with
+    p s (fun a s -> if f a then k a s else Failed (match r with None -> None | Some r -> Some (r a)))
+    (* match p s k with
     | (Parsed ((b, _), _) as x) ->
         if f b
         then x
         else Failed (match r with None -> None | Some r -> Some (r b))
-    | y -> y
+    | y -> y *)
 (*
 let unwrap r f g =
 match r with
@@ -140,3 +141,6 @@ let altl =
 
 let fix =
   fun f -> let rec p = lazy (f (fun t -> force p t)) in force p
+
+let fixPoly =
+  fun l -> fix (fun self l -> Array.map (fun li x -> li (self l) x) l) l
