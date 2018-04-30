@@ -48,7 +48,7 @@ class lexer (s : char list) =
         else
 	  emptyResult
   end
-
+(*
 ostap (
 
   expr [nlevels][operator][primary][level]:
@@ -80,7 +80,7 @@ let _ =
   match main (new lexer (of_string "a+b+c")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
   | Failed _ -> Printf.printf "Not parsed."
-(*
+*)
 ostap (
 
   expr [nlevels](*[operator][primary]*)[level]:
@@ -113,4 +113,4 @@ ostap (
 let _ =
   match main (new lexer (of_string "a+b+c")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
-  | Failed _ -> Printf.printf "Not parsed." *)
+  | Failed _ -> Printf.printf "Not parsed."
