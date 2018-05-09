@@ -50,10 +50,42 @@ class lexer (s : char list) =
   end
 
 ostap (
-  main: i:IDENT {`I i}
+
+  listBy[sep][item]: hd:item tl:(-sep item)* {hd :: tl};
+  list: listBy[ostap (",")];
+
+  expr [nlevels][operator][primary][level]:
+    {nlevels = level} => p:primary {`Primary p}
+  | {nlevels > level} => left:expr[nlevels][operator][primary][level+1]
+       right:(
+          operator[level]
+          expr[nlevels][operator][primary][level](*::("operand expected")*)
+       )?
+       {
+        match right with
+	| None -> left
+	| Some (op, right) -> `Operator (left, op, right)
+       }
+
+)
+
+ostap (
+  primary:
+    i:IDENT             {`Ident i}
+  | c:CONST             {`Const c}
+  | -"(" intExpr -")"
+  | "-" p:primary       {`Neg p};
+
+  operator[n]:
+     {n == 0} => ("+" {`Plus} | "-" {`Minus})
+   | {n == 1} => ("*" {`Mul } | "/" {`Div  })
+  ;
+  intExpr: p:expr[2][operator][primary][0];
+  main: intExpr -EOF
 )
 
 let _ =
-  match main (new lexer (of_string "a+b+c")) (fun res s -> Parsed ((res, s), None)) with
+  match main (new lexer (of_string "a+b-")) (fun res s -> (*match res with
+	                                                   | `I _ ->*) Parsed ((1, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
   | Failed _ -> Printf.printf "Not parsed."

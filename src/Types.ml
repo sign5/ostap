@@ -15,8 +15,8 @@
  * (enclosed in the file COPYING).
  *)
 
- open Errors
  open Matcher
+ open Errors
  open Result
 
  module K :
