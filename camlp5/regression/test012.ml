@@ -18,8 +18,6 @@
 open Re_str
 open Ostap
 open Types
-open Result
-open Errors
 open Matcher
 open Printf
 
@@ -28,7 +26,7 @@ class lexer (s : char list) =
   let const = Re_str.regexp "[0-9]+" in
   object (self : 'self) inherit stream s as super
 
-    method getCONST : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getCONST : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
         let str = of_chars s in
 	if string_match const str p
@@ -38,7 +36,7 @@ class lexer (s : char list) =
 	else
           emptyResult
 
-    method getIDENT : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
         let str = of_chars s in
         if string_match ident str p
@@ -59,7 +57,7 @@ ostap (
   | {nlevels > level} => left:expr[nlevels][operator][primary][level+1]
        right:(
           operator[level]
-          expr[nlevels][operator][primary][level](*::("operand expected")*)
+          expr[nlevels][operator][primary][level]::("operand expected")
        )?
        {
         match right with
@@ -86,6 +84,6 @@ ostap (
 
 let _ =
   match main (new lexer (of_string "a+b-")) (fun res s -> (*match res with
-	                                                   | `I _ ->*) Parsed ((1, s), None)) with
+	                                                   | `I _ ->*) Parsed ((res, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
   | Failed _ -> Printf.printf "Not parsed."

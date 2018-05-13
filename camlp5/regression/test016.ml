@@ -1,8 +1,6 @@
 open Re_str
 open Ostap
 open Types
-open Result
-open Errors
 open Matcher
 open Printf
 

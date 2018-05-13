@@ -15,25 +15,26 @@
  * (enclosed in the file COPYING).
  *)
 
- open Matcher
- open Errors
- open Result
+ type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
+ type ('b, 'c, 'stream) result = ('b * 'stream, 'c) tag
 
+ let emptyResult = Failed None
+ 
  module K :
    sig
-     type ('a, 'b, 'stream) t = 'a -> 'stream -> ('b, 'stream) result
+     type ('a, 'b, 'c, 'stream) t = 'a -> 'stream -> ('b, 'c, 'stream) result
      type ks
 
-     val singleton : ('a, 'b, 'stream) t -> ks
-     val add       : ('a, 'b, 'stream) t -> ks -> ks
-     val fold      : (('a, 'b, 'stream) t -> ('b, 'stream) result -> ('b, 'stream) result) -> ks -> ('b, 'stream) result -> ('b, 'stream) result
+     val singleton : ('a, 'b, 'c, 'stream) t -> ks
+     val add       : ('a, 'b, 'c, 'stream) t -> ks -> ks
+     val fold      : (('a, 'b, 'c, 'stream) t -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result) -> ks -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result
      val empty     : ks
      val length    : ks -> int
 
    end =
    struct
 
-     type ('a, 'b, 'stream) t = 'a -> 'stream -> ('b, 'stream) result
+     type ('a, 'b, 'c, 'stream) t = 'a -> 'stream -> ('b, 'c, 'stream) result
 
      module Ks = Set.Make (
        struct
@@ -51,9 +52,9 @@
      let length      ks      = Ks.cardinal ks
    end
 
- type ('a, 'b, 'stream) k       = ('a, 'b, 'stream) K.t
- type ('a, 'b, 'stream) parser  = 'stream -> ('a, 'b, 'stream) k -> ('b, 'stream) result
- type ('a, 'b, 'stream) parser' =            ('a, 'b, 'stream) k -> ('b, 'stream) result
+ type ('a, 'b, 'c, 'stream) k       = ('a, 'b, 'c, 'stream) K.t
+ type ('a, 'b, 'c, 'stream) parser  = 'stream -> ('a, 'b, 'c, 'stream) k -> ('b, 'c, 'stream) result
+ type ('a, 'b, 'c, 'stream) parser' =            ('a, 'b, 'c, 'stream) k -> ('b, 'c, 'stream) result
 
 let bind result f =
   match result with
@@ -63,3 +64,11 @@ let bind result f =
        | `Fail err' -> Failed (Some err')
       )
   | Failed x -> Failed x
+
+let (<@>) : ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result =
+  fun res1 res2 ->
+    match res1, res2 with
+    | Parsed ((res, x), opt1), Failed opt2        -> Parsed ((res, x), opt1)
+    | Failed opt1,        Parsed ((res, x), opt2) -> Parsed ((res, x), opt1)
+    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> Parsed ((res, x), opt1)
+    | Failed opt1,        Failed opt2        -> Failed (opt1)

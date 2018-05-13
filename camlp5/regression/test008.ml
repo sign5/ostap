@@ -1,4 +1,5 @@
 (*
+
  * Test008: simplest ocamlyard test.
  * Copyright (C) 2006
  * Dmitri Boulytchev, St.Petersburg State University
@@ -18,8 +19,6 @@
 open Re_str
 open Ostap
 open Types
-open Result
-open Errors
 open Matcher
 
 class lexer (s : char list) =
@@ -28,7 +27,7 @@ class lexer (s : char list) =
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
-    method getIDENT : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
 	let str = of_chars s in
         let p' =
@@ -43,10 +42,10 @@ class lexer (s : char list) =
         else
 	  emptyResult
 
-    method supLook : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method supLook : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun cs k -> super # look cs k
 
-    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method look : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun cs k ->
 	let str = of_chars s in
 	let p' =
@@ -56,7 +55,7 @@ class lexer (s : char list) =
 	in
     {< p = p'>} # supLook cs k
 
-    method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
         let str = of_chars s in
         let p' =

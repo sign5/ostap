@@ -1,8 +1,14 @@
 open Lazy
 open Matcher
 open Types
-open Errors
-open Result
+
+let join = function
+| None   -> fun y -> y
+| Some x -> function None -> Some x | Some y -> Some (x#add y)
+
+let comment str = function
+| None   -> None
+| Some m -> Some (m#comment str)
 
 let return =
   fun x s k -> k x s
@@ -42,20 +48,20 @@ let memoresult =
         p (fun a s ->
              match List.find_all (fun (s', a') -> (a = a') && (s # equal s')) !ss with
 	     | [] -> (ss := (s, a) :: !ss;
-	              K.fold (fun k acc -> acc <@> (k a s)) !ks emptyResult)
-             |  _ -> emptyResult
+	              K.fold (fun k acc -> acc <@> (k a s)) !ks (Failed None))
+             |  _ -> Failed None
           ))
       else (ks := K.add k !ks;
 	    List.fold_left (fun acc x -> match acc, x with
 		                         | Parsed _,    _           -> acc
 					 | Failed _,    Parsed _    -> x
-					 | Failed opt1, Failed opt2 -> Failed (cmp opt1 opt2))
-                           emptyResult
+					 | Failed opt1, Failed opt2 -> Failed (opt2))
+                           (Failed None)
 			   (List.map (fun (s, a) -> (k a s)) !ss))
 
 let memo =
   fun f ->
-    let table : ('stream, ('a, 'b, 'stream) parser') Hashtbl.t = Hashtbl.create 16 in
+    let table : ('stream, ('a, 'b, 'c, 'stream) parser') Hashtbl.t = Hashtbl.create 16 in
     fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
                                             | Some _                   -> acc
@@ -89,9 +95,9 @@ let rec manyFold =
 	           manyFold f init p |> (fun xps ->
 		   return (f xp xps))))
 
-let rec many : ('a, 'b, 's) parser -> ('a list, 'b, 's) parser =
+let rec many : ('a, 'b, 'c, 's) parser -> ('a list, 'b, 'c, 's) parser =
   fun p s k ->
-    let result : ('b, 'stream) result ref = ref (k [] s) in
+    let result : ('b, 'c, 'stream) result ref = ref (k [] s) in
     let rec loop alist stream =
       p stream (fun a stream' ->
                   let alist' = List.rev (a :: (List.rev alist)) in
@@ -138,6 +144,11 @@ match r with
 *)
 let altl =
   fun l -> List.fold_left (<|>) (fail None) l
+
+let comment p str s k =
+  match p s k with
+  | (Parsed _ as x) -> x
+  | Failed m -> Failed (comment str m)
 
 let fix =
   fun f -> let rec p = lazy (f (fun t -> force p t)) in force p

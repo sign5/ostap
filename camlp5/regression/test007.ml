@@ -18,8 +18,6 @@
 open Re_str
 open Ostap
 open Types
-open Result
-open Errors
 open Matcher
 
 class lexer (s : char list) =
@@ -28,7 +26,7 @@ class lexer (s : char list) =
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
-    method getIDENT : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
 	let str = of_chars s in
         let p' =
@@ -43,10 +41,10 @@ class lexer (s : char list) =
         else
 	  emptyResult
 
-    method supLook : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method supLook : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun cs k -> super # look cs k
 
-    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method look : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun cs k ->
 	let str = of_chars s in
 	let p' =
@@ -56,7 +54,7 @@ class lexer (s : char list) =
 	in
     {< p = p'>} # supLook cs k
 
-    method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun k ->
         let str = of_chars s in
         let p' =
@@ -83,6 +81,6 @@ let _ =
   end;
   begin match m (new lexer (of_string " abc; def ")) (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, s), _) ->
-      Printf.printf "Parsed: %s %s\n" (List.fold_left (^) "" str) (Errors.showError (List.hd s # errors))
+      Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;

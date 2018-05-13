@@ -14,7 +14,7 @@
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
-(*
+
 open Types
 open String
 open Printf
@@ -150,15 +150,41 @@ type aux = [`Skipped of int * Msg.Coord.t | `Failed of Msg.t | `Init]
 
 let defaultSkipper = fun (p : int) (c : Msg.Coord.t) -> (`Skipped (p, c) :> [`Skipped of int * Msg.Coord.t | `Failed of Msg.t])
 
-class t s =
-  object (self)
+let of_string s =
+  let n = String.length s in
+  let rec loop i =
+    if i = n then [] else s.[i] :: loop (i + 1)
+  in
+  loop 0
+
+let of_chars chars =
+  let buf = Buffer.create 16 in
+    List.iter (Buffer.add_char buf) chars;
+    Buffer.contents buf
+
+  class stream (s : char list) =
+    object (self : 'self)
+
     val regexps = Hashtbl.create 256
     val p       = 0
     val coord   = (1, 1)
     val skipper = defaultSkipper
     val context : aux = `Init
 
+    method coord = coord
+    method line  = fst coord
+    method col   = snd coord
     method skip = skipper
+    method pos       = p
+    method str       = of_chars s
+    method chrs      = s
+
+    method equal : 'self -> bool =
+      fun s' -> (s = s' # chrs) && (p = s' # pos)
+
+    method private failed : 'b . string -> (int * int) -> ('b, Reason.t, 'self) result =
+      fun x c -> Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
+
     method private changeSkip sk =
       let newContext =
       match context with
@@ -167,151 +193,92 @@ class t s =
       | `Skipped (p, coord) -> ((sk p coord) :> aux)
       in {< skipper = sk; context = newContext >}
 
-
-    method private parsed x y c = Parsed (((x, c), y), None)
-    method private failed x c   = Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
-
-    method pos   = p
-    method coord = coord
-    method line  = fst coord
-    method col   = snd coord
-
-    method private proceed f =
-      match context with
-      | `Failed msg -> Failed (reason msg)
-      | `Init ->
-	  (match self#skip p coord with
-	  | `Skipped (p, coord) -> f p coord
-	  | `Failed msg -> Failed (reason msg)
-	  )
-      | `Skipped (p, coord) -> f p coord
-
-    method equal : 'self -> bool =
-      fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
+    method private proceed : 'b . (int -> (int * int) -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun f ->
+        match context with
+        | `Failed msg -> Failed (reason msg)
+        | `Init ->
+            (match self#skip p coord with
+            | `Skipped (p, coord) -> f p coord
+            | `Failed msg -> Failed (reason msg)
+            )
+        | `Skipped (p, coord) -> f p coord
 
     method prefix n =
+      let s = of_chars s in
       if p + n < String.length s
       then String.sub s p n
       else String.sub s p (String.length s - p)
 
-    method regexp name str = self#get name
-      (try Hashtbl.find regexps str with Not_found ->
-         let regexp = Re_str.regexp str in
-         Hashtbl.add regexps str regexp;
-         regexp
-      )
+    method regexp : 'b . string -> string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun name str -> self#get name
+        (try Hashtbl.find regexps str with Not_found ->
+	   let regexp = Re_str.regexp str in
+	   Hashtbl.add regexps str regexp;
+	   regexp
+        )
 
-    method get name regexp k = self#proceed
-      (fun p coord ->
-        if string_match regexp s p
-        then
-          let m = matched_string s in
-          let l = length m in
-          let p = p + l in
-          let c = Msg.Coord.shift coord m 0 l in
-          k m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >}
-        else self#failed (sprintf "\"%s\" expected" name) coord
-      )
+    method get : 'b . string -> regexp -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun name regexp k -> self#proceed
+        (fun p coord ->
+	  let s = of_chars s in
+	  if string_match regexp s p
+	  then
+	    let m = matched_string s in
+	    let l = length m in
+	    let p = p + l in
+	    let c = Msg.Coord.shift coord m 0 l in
+	    k m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >}
+	  else self#failed (sprintf "\"%s\" expected" name) coord
+        )
 
-    method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
+(*
+    method look : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun cs k ->
+        let rec loop chars result =
+      	match chars with
+      	| [] -> k @@ of_chars @@ List.rev @@ result
+      	| c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
+      in loop (of_string cs) [] self
+
+    method lookChar : 'b . char -> (char -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun c k ->
+      try
+        if c = List.nth s p
+        then k c {< p = p + 1 >}
+        else Failed None
+      with _ -> Failed None
+
+    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun k ->
+        if p = List.length s
+        then k "EOF" self
+        else Failed None
+*)
+    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+      fun k ->
+        self#proceed
+          (fun p coord ->
+             if p = List.length s
+             then k "<EOF>" {< p = p; coord = coord>}
+              else self#failed "<EOF> expected" coord
+	  )
+
+    method look : 'b. string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
       fun str k -> self#proceed
-      (fun p coord ->
-         try
-	   let l = String.length str in
-	   let m = String.sub s p l in
-	   let p = p + l in
-	   let c = Msg.Coord.shift coord m 0 (length m) in
-	   if str = m
-	   then k m {< p = p; coord = c; context = ((self#skip p c) :> aux) >}
-	   else self#failed (sprintf "\"%s\" expected" str) coord
-         with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
-      )
+        (fun p coord ->
+           let s = of_chars s in
+           try
+	     let l = String.length str in
+	     let m = String.sub s p l in
+	     let p = p + l in
+	     let c = Msg.Coord.shift coord m 0 (length m) in
+	     if str = m
+	     then k m {< p = p; coord = c; context = ((self#skip p c) :> aux) >}
+	     else self#failed (sprintf "\"%s\" expected" str) coord
+           with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
+        )
 
-   method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-     fun k -> self#proceed
-     (fun p coord ->
-	if p = length s
-	then k "<EOF>" {< p = p; coord = coord>}
-	else self#failed "<EOF> expected" coord
-     )
-
-    method loc = Msg.Locator.Point coord
+     method loc = Msg.Locator.Point coord
 
   end
- *)
-
-  open Errors
-  open Result
-
-  let of_string s =
-    let n = String.length s in
-    let rec loop i =
-      if i = n then [] else s.[i] :: loop (i + 1)
-    in
-    loop 0
-
-  let of_chars chars =
-    let buf = Buffer.create 16 in
-      List.iter (Buffer.add_char buf) chars;
-      Buffer.contents buf
-
-  class stream (s : char list) =
-    object (self : 'self)
-
-      val p = 0
-      val errors = Errors.empty
-
-      method errors    = errors
-      method pos       = p
-      method str       = of_chars s
-      method chrs      = s
-      method rest      =
-        let rec f l p' = if (p' = 0) then l else f (List.tl l) (p' - 1)
-        in of_chars (f s p)
-
-      method correctErrors =
-        let rec cycle str offset = function
-        | []                            -> str
-        | Errors.Replace (c, pos) :: etc -> cycle str offset etc
-        | Errors.Delete (c, pos)  :: etc -> cycle str (offset + 1) etc
-        in cycle (of_chars s) 0 errors
-
-      method equal : 'self -> bool =
-        fun s' -> (s = s' # chrs) && (p = s' # pos) && (Errors.equal errors (s' # errors))
-
-      method look : 'b . string -> (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-        fun cs k ->
-          let rec loop chars result =
-      	  match chars with
-      	  | [] -> k @@ of_chars @@ List.rev @@ result
-      	  | c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
-      	in loop (of_string cs) [] self
-
-      method lookChar : 'b . char -> (char -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-        fun c k ->
-        try
-          if c = List.nth s p
-          then k c {< p = p + 1 >}
-          else (*begin
-  	  let err1 = Errors.Delete (List.nth s p, p) in
-  	  let err2 = Errors.Replace (c, p) in
-  	  let res1 = (match ({< p = p + 1; errors = Errors.addError err1 errors >} # lookChar c k) with
-  	              | _               -> Failed None
-  	              | Parsed (res, _) -> Failed (Some err1)
-  		      | Failed None     -> Failed (Some err1)
-  		      | Failed x        -> Failed x) in
-  	  let res2 = (match (k c {< p = p + 1; errors =  Errors.addError err2 errors>}) with
-  	              | _               -> Failed None
-  	              | Parsed (res, _) -> Failed (Some err2)
-  		      | Failed None     -> Failed (Some err1)
-  	              | Failed x        -> Failed x) in
-  	  res1 <@> res2
-  	end*) Failed (Some (Errors.Replace (c, p)))
-        with _ -> emptyResult
-
-      method getEOF : 'b . (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result =
-        fun k ->
-          if p = List.length s
-          then k "EOF" self
-          else emptyResult
-    end

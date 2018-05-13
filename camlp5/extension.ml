@@ -762,7 +762,7 @@ EXTEND
             let look = <:expr< _ostap_stream4 # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt<$lid:"(_ostap_stream4 : < " ^ p' ^ " : 'b. (string -> 'self -> ('b, 'self) result) -> ('b, 'self) result; .. > as 'self)"$>>,
+	       <:patt<$lid:"(_ostap_stream4 : < " ^ p' ^ " : 'b. (string -> 'self -> ('b, 'c, 'self) result) -> ('b, 'c, 'self) result; .. > as 'self)"$>>,
 	       Ploc.VaVal None,
 	       look
 	      )
