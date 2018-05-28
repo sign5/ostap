@@ -16,25 +16,25 @@
  *)
 
  type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
- type ('b, 'c, 'stream) result = ('b * 'stream, 'c) tag
+ type ('stream, 'b, 'c) result = ('b * 'stream, 'c) tag
 
  let emptyResult = Failed None
- 
+
  module K :
    sig
-     type ('a, 'b, 'c, 'stream) t = 'a -> 'stream -> ('b, 'c, 'stream) result
+     type ('a, 'stream, 'b, 'c) t = 'a -> 'stream -> ('stream, 'b, 'c) result
      type ks
 
-     val singleton : ('a, 'b, 'c, 'stream) t -> ks
-     val add       : ('a, 'b, 'c, 'stream) t -> ks -> ks
-     val fold      : (('a, 'b, 'c, 'stream) t -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result) -> ks -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result
+     val singleton : ('a, 'stream, 'b, 'c) t -> ks
+     val add       : ('a, 'stream, 'b, 'c) t -> ks -> ks
+     val fold      : (('a, 'stream, 'b, 'c) t -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result) -> ks -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result
      val empty     : ks
      val length    : ks -> int
 
    end =
    struct
 
-     type ('a, 'b, 'c, 'stream) t = 'a -> 'stream -> ('b, 'c, 'stream) result
+     type ('a, 'stream, 'b, 'c) t = 'a -> 'stream -> ('stream, 'b, 'c) result
 
      module Ks = Set.Make (
        struct
@@ -52,9 +52,9 @@
      let length      ks      = Ks.cardinal ks
    end
 
- type ('a, 'b, 'c, 'stream) k       = ('a, 'b, 'c, 'stream) K.t
- type ('a, 'b, 'c, 'stream) parser  = 'stream -> ('a, 'b, 'c, 'stream) k -> ('b, 'c, 'stream) result
- type ('a, 'b, 'c, 'stream) parser' =            ('a, 'b, 'c, 'stream) k -> ('b, 'c, 'stream) result
+ type ('a, 'stream, 'b, 'c) k       = ('a, 'stream, 'b, 'c) K.t
+ type ('a, 'stream, 'b, 'c) parser  = 'stream -> ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
+ type ('a, 'stream, 'b, 'c) parser' =            ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
 
 let bind result f =
   match result with
@@ -65,7 +65,7 @@ let bind result f =
       )
   | Failed x -> Failed x
 
-let (<@>) : ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result -> ('b, 'c, 'stream) result =
+let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result =
   fun res1 res2 ->
     match res1, res2 with
     | Parsed ((res, x), opt1), Failed opt2        -> Parsed ((res, x), opt1)

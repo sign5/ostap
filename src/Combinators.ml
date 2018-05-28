@@ -61,7 +61,7 @@ let memoresult =
 
 let memo =
   fun f ->
-    let table : ('stream, ('a, 'b, 'c, 'stream) parser') Hashtbl.t = Hashtbl.create 16 in
+    let table : ('stream, ('a, 'stream, 'b, 'c) parser') Hashtbl.t = Hashtbl.create 16 in
     fun s k ->
       match (Hashtbl.fold (fun s' p' acc -> match acc with
                                             | Some _                   -> acc
@@ -95,9 +95,9 @@ let rec manyFold =
 	           manyFold f init p |> (fun xps ->
 		   return (f xp xps))))
 
-let rec many : ('a, 'b, 'c, 's) parser -> ('a list, 'b, 'c, 's) parser =
+let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
   fun p s k ->
-    let result : ('b, 'c, 'stream) result ref = ref (k [] s) in
+    let result : ('stream, 'b, 'c) result ref = ref (k [] s) in
     let rec loop alist stream =
       p stream (fun a stream' ->
                   let alist' = List.rev (a :: (List.rev alist)) in

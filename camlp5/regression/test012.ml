@@ -26,7 +26,7 @@ class lexer (s : char list) =
   let const = Re_str.regexp "[0-9]+" in
   object (self : 'self) inherit stream s as super
 
-    method getCONST : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         let str = of_chars s in
 	if string_match const str p
@@ -36,7 +36,7 @@ class lexer (s : char list) =
 	else
           emptyResult
 
-    method getIDENT : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         let str = of_chars s in
         if string_match ident str p

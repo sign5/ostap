@@ -26,7 +26,7 @@ class lexer (s : char list) =
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
-    method getIDENT : 'a . (string -> 'self -> ('a, Reason.t, 'self) result) -> ('a, Reason.t, 'self) result =
+    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
 	let str = of_chars s in
         let p' =
@@ -41,10 +41,10 @@ class lexer (s : char list) =
         else
 	  emptyResult
 
-    method supLook : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method supLook : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun cs k -> super # look cs k
 
-    method look : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun cs k ->
 	let str = of_chars s in
 	let p' =
@@ -54,7 +54,7 @@ class lexer (s : char list) =
 	in
     {< p = p'>} # supLook cs k
 
-    method getEOF : 'a . (string -> 'self -> ('a, Reason.t, 'self) result) -> ('a, Reason.t, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         let str = of_chars s in
         let p' =

@@ -182,7 +182,7 @@ let of_chars chars =
     method equal : 'self -> bool =
       fun s' -> (s = s' # chrs) && (p = s' # pos)
 
-    method private failed : 'b . string -> (int * int) -> ('b, Reason.t, 'self) result =
+    method private failed : 'b . string -> (int * int) -> ('self, 'b, Reason.t) result =
       fun x c -> Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
     method private changeSkip sk =
@@ -193,7 +193,7 @@ let of_chars chars =
       | `Skipped (p, coord) -> ((sk p coord) :> aux)
       in {< skipper = sk; context = newContext >}
 
-    method private proceed : 'b . (int -> (int * int) -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method private proceed : 'b . (int -> (int * int) -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun f ->
         match context with
         | `Failed msg -> Failed (reason msg)
@@ -210,7 +210,7 @@ let of_chars chars =
       then String.sub s p n
       else String.sub s p (String.length s - p)
 
-    method regexp : 'b . string -> string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method regexp : 'b . string -> string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun name str -> self#get name
         (try Hashtbl.find regexps str with Not_found ->
 	   let regexp = Re_str.regexp str in
@@ -218,7 +218,7 @@ let of_chars chars =
 	   regexp
         )
 
-    method get : 'b . string -> regexp -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method get : 'b . string -> regexp -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun name regexp k -> self#proceed
         (fun p coord ->
 	  let s = of_chars s in
@@ -233,7 +233,7 @@ let of_chars chars =
         )
 
 (*
-    method look : 'b . string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun cs k ->
         let rec loop chars result =
       	match chars with
@@ -241,7 +241,7 @@ let of_chars chars =
       	| c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
       in loop (of_string cs) [] self
 
-    method lookChar : 'b . char -> (char -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method lookChar : 'b . char -> (char -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun c k ->
       try
         if c = List.nth s p
@@ -249,13 +249,13 @@ let of_chars chars =
         else Failed None
       with _ -> Failed None
 
-    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         if p = List.length s
         then k "EOF" self
         else Failed None
 *)
-    method getEOF : 'b . (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         self#proceed
           (fun p coord ->
@@ -264,7 +264,7 @@ let of_chars chars =
               else self#failed "<EOF> expected" coord
 	  )
 
-    method look : 'b. string -> (string -> 'self -> ('b, Reason.t, 'self) result) -> ('b, Reason.t, 'self) result =
+    method look : 'b. string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun str k -> self#proceed
         (fun p coord ->
            let s = of_chars s in

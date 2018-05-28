@@ -406,8 +406,8 @@ EXTEND
 
   expr: LEVEL "expr1" [
     [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
-      let body = <:expr< $p$ _ostap_stream1 >> in
-      let pwel = [(<:patt< (_ostap_stream1 : #stream) >>, Ploc.VaVal None, body)] in
+      let body = <:expr< $p$ _ostap_stream >> in
+      let pwel = [(<:patt< (_ostap_stream : #Matcher.stream) >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f
@@ -545,8 +545,8 @@ EXTEND
       [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
         let args' =
   	match args with
-  	  None   -> [(*<:patt< (_ostap_stream1 : #stream) >>*)]
-  	| Some l -> l @ [(*<:patt< (_ostap_stream1 : #stream) >>*)]
+  	  None   -> [(*<:patt< (_ostap_stream : #Matcher.stream) >>*)]
+  	| Some l -> l @ [(*<:patt< (_ostap_stream : #Matcher.stream) >>*)]
         in
         let rule =
   	List.fold_right
@@ -555,7 +555,7 @@ EXTEND
   	    <:expr< fun [$list:pwel$] >>
   	  )
   	  args'
-  	  <:expr< $p$(* _ostap_stream1*) >>
+  	  <:expr< $p$(* _ostap_stream*) >>
         in
         let p = match args with
               None      -> []
@@ -704,10 +704,10 @@ EXTEND
     [ "%"; s=STRING ->
       let name   = <:expr< $str:s$ >> in
       let regexp = <:expr< $name$ ^ "\\\\\\\\b" >> in
-      let look   = <:expr< _ostap_stream2 # regexp ($name$) ($regexp$) >> in
+      let look   = <:expr< _ostap_stream # regexp ($name$) ($regexp$) >> in
       let pwel = [
 	(
-	 <:patt<$lid:"(_ostap_stream2 : #stream)"$>>,
+	 <:patt<$lid:"(_ostap_stream : #Matcher.stream)"$>>,
 	 Ploc.VaVal None,
 	 look
 	)
@@ -759,10 +759,10 @@ EXTEND
     ] |
     [ p=UIDENT ->
             let p' = "get" ^ p in
-            let look = <:expr< _ostap_stream4 # $p'$ >> in
+            let look = <:expr< _ostap_stream # $p'$ >> in
             let pwel = [
 	      (
-	       <:patt<$lid:"(_ostap_stream4 : < " ^ p' ^ " : 'b. (string -> 'self -> ('b, 'c, 'self) result) -> ('b, 'c, 'self) result; .. > as 'self)"$>>,
+	       <:patt<$lid:"(_ostap_stream : < " ^ p' ^ " : 'b. (string -> 'self -> ('self, 'b, 'c) Types.result) -> ('self, 'b, 'c) Types.result; .. > as 'self)"$>>,
 	       Ploc.VaVal None,
 	       look
 	      )
@@ -770,10 +770,10 @@ EXTEND
             (<:expr< fun [$list:pwel$] >>, Some (Expr.term p))
     ] |
     [ p=STRING ->
-          let look = <:expr< _ostap_stream5 # look $str:p$ >> in
+          let look = <:expr< _ostap_stream # look $str:p$ >> in
           let pwel = [
 	     (
-	     <:patt<$lid:"(_ostap_stream5 : #stream)"$>>,
+	     <:patt<$lid:"(_ostap_stream : #Matcher.stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
@@ -781,10 +781,10 @@ EXTEND
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
     ] |
     [ "$"; "("; p=expr; ")" ->
-          let look = <:expr< _ostap_stream6 # look ($p$) >> in
+          let look = <:expr< _ostap_stream # look ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"(_ostap_stream6 : #stream)"$>>,
+	     <:patt<$lid:"(_ostap_stream : #Matcher.stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
@@ -793,10 +793,10 @@ EXTEND
     ] |
     [ "@"; "("; p=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
-          let look = <:expr< _ostap_stream7 # regexp ($name$) ($p$) >> in
+          let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
           let pwel = [
 	    (
-	     <:patt<$lid:"(_ostap_stream7 : #stream)"$>>,
+	     <:patt<$lid:"(_ostap_stream : #Matcher.stream)"$>>,
 	     Ploc.VaVal None,
 	     look
 	    )
