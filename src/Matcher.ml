@@ -162,7 +162,7 @@ let of_chars chars =
     List.iter (Buffer.add_char buf) chars;
     Buffer.contents buf
 
-  class stream (s : char list) =
+  class stream (s : string) =
     object (self : 'self)
 
     val regexps = Hashtbl.create 256
@@ -171,16 +171,17 @@ let of_chars chars =
     val skipper = defaultSkipper
     val context : aux = `Init
 
+
     method coord = coord
     method line  = fst coord
     method col   = snd coord
-    method skip = skipper
-    method pos       = p
-    method str       = of_chars s
-    method chrs      = s
+    method skip  = skipper
+    method pos   = p
+    method str   = s
+    method chrs  = of_string s
 
     method equal : 'self -> bool =
-      fun s' -> (s = s' # chrs) && (p = s' # pos)
+      fun s' -> (s = s' # str) && (p = s' # pos)
 
     method private failed : 'b . string -> (int * int) -> ('self, 'b, Reason.t) result =
       fun x c -> Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
@@ -205,7 +206,6 @@ let of_chars chars =
         | `Skipped (p, coord) -> f p coord
 
     method prefix n =
-      let s = of_chars s in
       if p + n < String.length s
       then String.sub s p n
       else String.sub s p (String.length s - p)
@@ -221,7 +221,6 @@ let of_chars chars =
     method get : 'b . string -> regexp -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun name regexp k -> self#proceed
         (fun p coord ->
-	  let s = of_chars s in
 	  if string_match regexp s p
 	  then
 	    let m = matched_string s in
@@ -232,42 +231,18 @@ let of_chars chars =
 	  else self#failed (sprintf "\"%s\" expected" name) coord
         )
 
-(*
-    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun cs k ->
-        let rec loop chars result =
-      	match chars with
-      	| [] -> k @@ of_chars @@ List.rev @@ result
-      	| c :: tail -> fun s -> s # lookChar c (fun res s' -> loop tail (res :: result) s')
-      in loop (of_string cs) [] self
-
-    method lookChar : 'b . char -> (char -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun c k ->
-      try
-        if c = List.nth s p
-        then k c {< p = p + 1 >}
-        else Failed None
-      with _ -> Failed None
-
-    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        if p = List.length s
-        then k "EOF" self
-        else Failed None
-*)
     method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
         self#proceed
           (fun p coord ->
-             if p = List.length s
+             if p = String.length s
              then k "<EOF>" {< p = p; coord = coord>}
-              else self#failed "<EOF> expected" coord
+             else self#failed "<EOF> expected" coord
 	  )
 
     method look : 'b. string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun str k -> self#proceed
         (fun p coord ->
-           let s = of_chars s in
            try
 	     let l = String.length str in
 	     let m = String.sub s p l in
@@ -279,6 +254,6 @@ let of_chars chars =
            with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
         )
 
-     method loc = Msg.Locator.Point coord
+    method loc = Msg.Locator.Point coord
 
   end

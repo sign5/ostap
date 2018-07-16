@@ -21,14 +21,13 @@ open Types
 open Matcher
 open Printf
 
-class lexer (s : char list) =
+class lexer (str :  string) =
   let ident = Re_str.regexp "[a-zA-Z][a-zA-Z0-9]*" in
   let const = Re_str.regexp "[0-9]+" in
-  object (self : 'self) inherit stream s as super
+  object (self : 'self) inherit stream str as super
 
     method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        let str = of_chars s in
 	if string_match const str p
 	then
           let m = matched_string str in
@@ -38,7 +37,6 @@ class lexer (s : char list) =
 
     method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        let str = of_chars s in
         if string_match ident str p
         then
 	  let m = matched_string str in
@@ -83,7 +81,7 @@ ostap (
 )
 
 let _ =
-  match main (new lexer (of_string "a+b-")) (fun res s -> (*match res with
+  match main (new lexer "a+b-") (fun res s -> (*match res with
 	                                                   | `I _ ->*) Parsed ((res, s), None)) with
   | Parsed _ -> Printf.printf "Parsed.\n"
   | Failed _ -> Printf.printf "Not parsed."

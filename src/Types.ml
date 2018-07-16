@@ -56,14 +56,15 @@
  type ('a, 'stream, 'b, 'c) parser  = 'stream -> ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
  type ('a, 'stream, 'b, 'c) parser' =            ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
 
-let bind result f =
-  match result with
-  | Parsed ((v, s), err) ->
-      (match f v with
-       | `Ok v'     -> Parsed ((v', s), err)
-       | `Fail err' -> Failed (Some err')
-      )
-  | Failed x -> Failed x
+let bind p k f =
+  p (fun a' s' ->
+       match k a' s' with
+       | Parsed ((v, s), err) ->
+           (match f v with
+            | `Ok v'     -> Parsed ((v', s), err)
+            | `Fail err' -> Failed (Some err')
+           )
+       | Failed x -> Failed x)
 
 let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result =
   fun res1 res2 ->

@@ -20,15 +20,14 @@ open Ostap
 open Types
 open Matcher
 
-class lexer (s : char list) =
-  object (self : 'self) inherit stream s as super
+class lexer (str :  string) =
+  object (self : 'self) inherit stream str as super
 
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
 
     method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-	let str = of_chars s in
         let p' =
  	  if string_match ws str p
  	  then p + (String.length (matched_string str))
@@ -46,7 +45,6 @@ class lexer (s : char list) =
 
     method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun cs k ->
-	let str = of_chars s in
 	let p' =
       if string_match ws str p
       then p + (String.length (matched_string str))
@@ -56,7 +54,6 @@ class lexer (s : char list) =
 
     method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        let str = of_chars s in
         let p' =
 	  if string_match ws str p
 	  then p + (String.length (matched_string str))
@@ -70,11 +67,11 @@ class lexer (s : char list) =
 let id = ostap ((IDENT | "123") -EOF)
 
 let _ =
-  begin match id (new lexer (of_string " left ")) (fun res s -> Parsed ((res, s), None)) with
+  begin match id (new lexer " left ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer (of_string "   123  ")) (fun res s -> Parsed ((res, s), None)) with
+  begin match id (new lexer "   123  ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;

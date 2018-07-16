@@ -136,12 +136,12 @@ let guard =
         then x
         else Failed (match r with None -> None | Some r -> Some (r b))
     | y -> y *)
-(*
+
 let unwrap r f g =
 match r with
 | Parsed ((x, _), _) -> f x
 | Failed x           -> g x
-*)
+
 let altl =
   fun l -> List.fold_left (<|>) (fail None) l
 

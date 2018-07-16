@@ -124,74 +124,78 @@ module Lexers =
       object(self : 'self)
 	inherit checkKeywords keywords
 	method virtual get      : 'b. String.t -> Re_str.regexp -> (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-        method private getIdent : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = fun k ->
-	  (* Types.bind *)
-	    self#get name regexp k
-	     (* (fun t ->
+	method private getIdent = fun k ->
+	  Types.bind
+	    (self#get name regexp)
+	    k
+	    (fun t ->
 	       let r = Token.repr t in
 	       if self#keyword r then `Fail (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
 	       else `Ok r
-	    ) *)
+	    )
       end
 
     class virtual uident keywords s =
       object inherit genericIdent "[A-Z]\([a-zA-Z_0-9]\)*\\b" "u-identifier" keywords s as ident
-	method getUIDENT : 'b. (string -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getUIDENT = ident#getIdent
       end
 
     class virtual lident keywords s =
       object inherit genericIdent "[a-z]\([a-zA-Z_0-9]\)*\\b" "l-identifier" keywords s as ident
-	method getLIDENT : 'b. (string -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getLIDENT = ident#getIdent
       end
 
     class virtual ident keywords s =
       object inherit genericIdent "[a-zA-Z]\([a-zA-Z_0-9]\)*\\b" "identifier" keywords s as ident
-	method getIDENT : 'b. (string -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getIDENT = ident#getIdent
       end
 
     class virtual decimal s =
       let regexp = Re_str.regexp "-?[0-9]+" in
       object(self : 'self)
 	method virtual get : 'b. String.t -> Re_str.regexp -> (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-	method getDECIMAL  : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-	  fun k -> (*Types.bind*)
-	    self#get "decimal constant" regexp k
-	    (* (fun t -> `Ok (int_of_string @@ Token.repr t)) *)
+	method getDECIMAL : (String.t -> 'self -> ('self, Token.t, Reason.t) Types.result) -> ('self, int, Reason.t) Types.result =
+	  fun k -> Types.bind
+	    (self#get "decimal constant" regexp)
+	    k
+	    (fun t -> `Ok (int_of_string @@ Token.repr t))
       end
 
     class virtual string s =
       let regexp = Re_str.regexp (*"\"\([^\"]\|\\\"\)*\""*) "\"[^\"]*\"" in
       object(self : 'self)
 	method virtual get : 'b. String.t -> Re_str.regexp -> (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-	method getSTRING   : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-	  fun k -> (*Types.bind*)
-	    self#get "string constant" regexp k
-	    (* (fun t -> `Ok (Token.repr t)) *)
+	method getSTRING   : (String.t -> 'self -> ('self, Token.t, Reason.t) Types.result) -> ('self, String.t, Reason.t) Types.result =
+	  fun k -> Types.bind
+	    (self#get "string constant" regexp)
+	    k
+	    (fun t -> `Ok (Token.repr t))
       end
 
     class virtual char s =
       let regexp = Re_str.regexp "'\([^']\|\\'\)'" in
       object(self : 'self)
 	method virtual get : 'b. String.t -> Re_str.regexp -> (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-	method getCHAR     : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-	  fun k -> (*Types.bind*)
-	    self#get "character constant" regexp k
-	    (* (fun t -> `Ok ((Token.repr t))) *)
+	method getCHAR     : (String.t -> 'self -> ('self, Token.t, Reason.t) Types.result) -> ('self, String.t, Reason.t) Types.result =
+	  fun k -> Types.bind
+	    (self#get "character constant" regexp)
+	    k
+	    (fun t -> `Ok ((Token.repr t)))
       end
 
     class skip skippers s =
-      object inherit Matcher.stream (Matcher.of_string s)
+      object inherit Matcher.stream s
 	val skipper = Skip.create skippers s
 	method skip = skipper
       end
 
   end
 
-let parse l p =
-  (*Combinators.unwrap ( *)p l (fun res s -> Types.Parsed ((res, s), None))
-    (* (fun x -> `Ok x)
-    (fun (Some err) ->
-       let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
-       let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
-       `Fail (Msg.toString m)
-    ) *)
+  let parse l p =
+    Combinators.unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
+      (fun x -> `Ok x)
+      (fun (Some err) ->
+         let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
+         let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
+         `Fail (Msg.toString m)
+      )

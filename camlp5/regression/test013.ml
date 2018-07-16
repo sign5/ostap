@@ -5,13 +5,12 @@ open Matcher
 open Printf
 open Lazy
 
-class lexer (s : char list) =
+class lexer (str :  string) =
   let const = regexp "[0-9]+" in
-  object (self : 'self) inherit stream s as super
+  object (self : 'self) inherit stream str as super
 
     method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        let str = of_chars s in
 	if string_match const str p
 	then
           let m = matched_string str in
@@ -38,6 +37,6 @@ let _ =
     | `E1 e -> "E[" ^ (print e) ^ "]"
     | `E2 (i, e) -> "E[" ^ (print i) ^ "+" ^ (print e) ^ "]"
   in
-  match main (new lexer (of_string "1+2+3")) (fun res s -> Parsed ((res, s), None)) with
+  match main (new lexer "1+2+3") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((b, _), _) -> Printf.printf "Parsed: %s\n" (print b)
   | Failed _ -> Printf.printf "Not parsed.\n"

@@ -10,8 +10,8 @@ module H = Hashtbl.Make(struct
                          let hash = Hashtbl.hash
                        end)
 
-class lexer (s : char list) =
-  object (self : 'self) inherit stream s as super
+class lexer (str : string) =
+  object (self : 'self) inherit stream str as super
   end
 
 ostap (
@@ -34,6 +34,6 @@ let _ =
     | `Pn a -> "P[" ^ (print a) ^ "(n)]"
     | `Pl a -> "P[" ^ (print a) ^ "]"
   in
-  match main (new lexer (of_string "x(n)(n).x(n).x")) (fun res s -> Parsed ((res, s), None)) with
+  match main (new lexer "x(n)(n).x(n).x") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((b, _), _) -> Printf.printf "Parsed: %s\n" (print b)
   | Failed _ -> Printf.printf "Not parsed:\n"
