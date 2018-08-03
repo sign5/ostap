@@ -170,7 +170,7 @@ let of_chars chars =
     val coord   = (1, 1)
     val skipper = defaultSkipper
     val context : aux = `Init
-
+    val lexbuf = Lexing.from_string s
 
     method coord = coord
     method line  = fst coord
@@ -179,6 +179,7 @@ let of_chars chars =
     method pos   = p
     method str   = s
     method chrs  = of_string s
+    method lexbuf = lexbuf
 
     method equal : 'self -> bool =
       fun s' -> (s = s' # str) && (p = s' # pos)
