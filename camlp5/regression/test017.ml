@@ -35,8 +35,20 @@ class lexer (str :  string) =
         else
           emptyResult
 
+    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    fun s k ->
+      try
+        let l = String.length s in
+        let m = String.sub str p l in
+        let p = p + l in
+        if s = m
+        then k m {< p = p >}
+        else emptyResult
+      with Invalid_argument _ -> emptyResult
+
     method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
+        (* self#regexpr "IDENT" "[a-zA-Z][a-zA-Z0-9]*" k *)
         if string_match ident str p
         then
           let m = matched_string str in
@@ -49,17 +61,6 @@ class lexer (str :  string) =
         if p = String.length str
         then k "<EOF>" {< p = p >}
         else emptyResult
-
-    method look : 'b. string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun s k ->
-        try
-          let l = String.length s in
-          let m = String.sub str p l in
-          let p = p + l in
-          if s = m
-          then k m {< p = p >}
-          else emptyResult
-        with Invalid_argument _ -> emptyResult
   end
 
 let left  f c x y = f (c x) y
@@ -210,7 +211,7 @@ let mixfixExpr ops opnd =
   let id x = x in
   let ostap (
       inner[l][c] : !(
-    if n = l then
+    if n <= l then
       ostap (x:opnd {c x})
     else
       Ostap.Combinators.altl
@@ -267,9 +268,9 @@ let mixfixExpr ops opnd =
                   ostap (r:res o:inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [y]))) else id] opart {o})
                 | `Many (lvl, folder) ->
                   ostap (r:res o:(inner[lvl][id])* post:inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [folder (o @ [y])]))) else id] opart {post}
-                        | r:res -opart {с (opsema (r @ [folder []]))})
+                        | r:res -opart {c (opsema (r @ [folder []]))})
                 | `Opt (lvl, default) ->
-                  ostap (r:res o:(inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [y]))) else id])? opart {match o with Some x -> x | None -> с (opsema (r @ [default]))})
+                  ostap (r:res o:(inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [y]))) else id])? opart {match o with Some x -> x | None -> c (opsema (r @ [default]))})
               else
                 let res = backbone oparts levels in
                 ostap (x:res {c (opsema x)})) :: acc)
@@ -285,7 +286,14 @@ let mixfixExpr ops opnd =
 
 let isInterm = true
 
-let ariphmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); ostap (""); ostap (" else "); ostap ("")], ((fun [b; vthen; elifs; velse] -> if b = 1 then vthen else (if elifs != -1 then elifs else velse)), [`Simple 2; `Simple 2; `Many (1, fun l -> List.fold_right (fun v a -> if v != -1 then v else a) l (-1)); `Simple 2]))]);
+let lamdba = [| ((not isInterm, Right), [([ostap ("^"); ostap ("."); ostap ("")], ((fun [x; y] -> `Lamdba (x, y)),  [`Simple 4; `Simple 0]))]);
+                ((not isInterm, Left),  [([ostap (""); ostap (" "); ostap ("")],  ((fun [x; y] -> `Compose (x, y)), [`Simple 2; `Simple 1]))]);
+                ((not isInterm, None),  [([ostap ("("); ostap (")")],             ((fun [x] -> `Parenth x), [`Simple 0]))]);
+                ((isInterm, None),      [([ostap (""); ostap (""); ostap ("")],   ((fun _ -> `Var ""), [`Opt (3, `Var ""); `Many (4, fun _ -> `Var "")]))])
+             |]
+
+(*
+let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); ostap (""); ostap (" else "); ostap ("")], ((fun [b; vthen; elifs; velse] -> if b = 1 then vthen else (if elifs != -1 then elifs else velse)), [`Simple 2; `Simple 2; `Many (1, fun l -> List.fold_right (fun v a -> if v != -1 then v else a) l (-1)); `Simple 2]))]);
                      ((isInterm, None),     [([ostap (" elif "); ostap (" then "); ostap ("")], ((fun [b; x] -> if b = 1 then x else -1), [`Simple 2; `Simple 2]))]);
                      ((not isInterm, Left), [([ostap (""); ostap ("+"); ostap ("")], ((fun [x; y] -> x + y), [`Simple 3; `Simple 2]));
                                              ([ostap (""); ostap ("-"); ostap ("")], ((fun [x; y] -> x - y), [`Simple 3; `Simple 2]))]);
@@ -293,16 +301,34 @@ let ariphmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); 
                                              ([ostap (""); ostap ("/"); ostap ("")], ((fun [x; y] -> x / y), [`Simple 4; `Simple 3]))]);
                      ((not isInterm, None), [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Simple 0]))]);
                      ((isInterm, None),     [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Opt (0, 1)]))])
-                  |]
+                  |] *)
+
+(* ostap (
+  opnd: IDENT {3};
+  intExpr: mixfixExpr[arithmetics][opnd];
+  arithm: intExpr -EOF
+  ) *)
 
 ostap (
-  opnd: IDENT {3};
-  intExpr: mixfixExpr[ariphmetics][opnd];
-  main: intExpr -EOF
-)
+    var: x:IDENT {`Var x};
+    lambdaExpr: mixfixExpr[lamdba][var];
+    lambda: lambdaExpr -EOF
+  )
 
-let _ =
-  match main (new lexer "a*a*a+a*a-a*(a-a*a)") (fun res s -> (*match res with
+(* let _ =
+  match arithm (new lexer "a+a") (fun res s -> (*match res with
 	                                                   | `I _ ->*) Parsed ((res, s), None)) with
   | Parsed ((res, _), _) -> Printf.printf "%d\n" res
+  | Failed _ -> Printf.printf "Failed.\n" *)
+
+let _ =
+  let rec print res =
+    match res with
+    | `Lamdba (x, y) -> "{Lambda " ^ (print x) ^ " -> " ^ (print y) ^ "}"
+    | `Compose (x, y) -> "{" ^ (print x) ^ "  " ^ (print y) ^ "}"
+    | `Parenth x -> "{(" ^ (print x) ^ ")}"
+    | `Var x     -> x
+  in
+  match lambda (new lexer "^x.^y.y x") (fun res s -> Parsed ((res, s), None)) with
+  | Parsed ((res, _), _) -> Printf.printf "Parsed. %s\n" (print res)
   | Failed _ -> Printf.printf "Failed.\n"
