@@ -3,6 +3,7 @@ authors: "dboulytchev@gmail.com"
 maintainer: "danila.borovkov1996@gmail.com"
 version:  "0.4"
 homepage: "http://oops.math.spbu.ru/projects/ostap"
+bug-reports: "https://github.com/Ostapers/ostap/issues"
 dev-repo:    "git+https://github.com/kverty/ostap.git"
 
 build: [
