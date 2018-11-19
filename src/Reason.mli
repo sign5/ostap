@@ -2,21 +2,21 @@
  * Reason: error reasons tree interface.
  * Copyright (C) 2008
  * Dmitri Boulytchev, St.Petersburg State University
- * 
+ *
  * This software is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Library General Public
  * License version 2, as published by the Free Software Foundation.
- * 
+ *
  * This software is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * See the GNU Library General Public License version 2 for more details
  * (enclosed in the file COPYING).
  *)
 
-(** Predefined implementation of reason type to describe various errors happened 
-    during parsing. 
+(** Predefined implementation of reason type to describe various errors happened
+    during parsing.
 *)
 
 (** Interior type. *)
@@ -39,7 +39,7 @@ class t :
 (** Synonym for reason construction. *)
 val reason : Msg.t -> t option
 
-(** Standard printer for optional reason. The first two arguments have the following meanings: 
+(** Standard printer for optional reason. The first two arguments have the following meanings:
 
     {ul {- [ `All] makes printer show {i all} the messages while [ `First n] asks only for [n] first of them;
          this is desirable since there can potentially be many parasite messages;}

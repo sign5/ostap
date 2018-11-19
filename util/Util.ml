@@ -19,6 +19,8 @@ open Combinators
 open Matcher
 open Printf
 
+class matcher_stream = Matcher.stream
+
 module Ostap =
   struct
 
@@ -29,6 +31,7 @@ module Ostap =
 ostap (
   keyword[name]: @(name ^ "\\b" : name)
 )
+
 
 let (~$) = keyword
 

@@ -22,27 +22,66 @@ open Matcher
 open Printf
 
 class lexer (str :  string) =
-  let ident = Re_str.regexp "[a-zA-Z][a-zA-Z0-9]*" in
-  let const = Re_str.regexp "[0-9]+" in
   object (self : 'self) inherit stream str as super
 
-    method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-	if string_match const str p
-	then
-          let m = matched_string str in
-          k m {< p = p + String.length m >}
-	else
-          emptyResult
+    val ws    = regexp "[' ''\n''\t']+"
+    val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
+    val const = Re_str.regexp "[0-9]+"
 
     method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        if string_match ident str p
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if string_match ident str p'
         then
-	  let m = matched_string str in
-	  k m {< p = p + String.length m >}
+          let m = matched_string str in
+          k m {< p = p' + String.length m >}
         else
-	  emptyResult
+          emptyResult
+
+    method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun k ->
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if string_match const str p'
+        then
+          let m = matched_string str in
+          k m {< p = p' + String.length m >}
+        else
+          emptyResult
+
+    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun cs k -> (*super # look cs k*)
+        try
+          let p =
+            if string_match ws str p
+            then p + (String.length (matched_string str))
+            else p
+          in
+          let l = String.length cs in
+          let m = String.sub str p l in
+          let p = p + l in
+          if cs = m
+          then k m {< p = p >}
+          else emptyResult
+        with Invalid_argument _ -> emptyResult
+
+    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun k ->
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if p' = String.length str
+        then k "EOF" self
+        else emptyResult
   end
 
 ostap (
@@ -81,7 +120,7 @@ ostap (
 )
 
 let _ =
-  match main (new lexer "a+b-") (fun res s -> (*match res with
+  match main (new lexer "b+a-") (fun res s -> (*match res with
 	                                                   | `I _ ->*) Parsed ((res, s), None)) with
-  | Parsed _ -> Printf.printf "Parsed.\n"
-  | Failed _ -> Printf.printf "Not parsed."
+  | Parsed _ -> Printf.printf "Parsed."
+  | Failed m -> Printf.printf "Not parsed:\n%s\n" (Reason.toString `All `Acc m)

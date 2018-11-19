@@ -22,44 +22,60 @@ open Matcher
 open Printf
 
 class lexer (str :  string) =
-  let ident = Re_str.regexp "[a-zA-Z][a-zA-Z0-9]*" in
-  let const = Re_str.regexp "[0-9]+" in
   object (self : 'self) inherit stream str as super
+
+    val ws    = regexp "[' ''\n''\t']+"
+    val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
+    val const = Re_str.regexp "[0-9]+"
+
+    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun k ->
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if string_match ident str p'
+        then
+          let m = matched_string str in
+          k m {< p = p' + String.length m >}
+        else
+          emptyResult
 
     method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        if string_match const str p
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if string_match const str p'
         then
           let m = matched_string str in
-          k m {< p = p + String.length m >}
+          k m {< p = p' + String.length m >}
         else
           emptyResult
 
     method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-    fun s k ->
-      try
-        let l = String.length s in
-        let m = String.sub str p l in
-        let p = p + l in
-        if s = m
-        then k m {< p = p >}
-        else emptyResult
-      with Invalid_argument _ -> emptyResult
-
-    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        (* self#regexpr "IDENT" "[a-zA-Z][a-zA-Z0-9]*" k *)
-        if string_match ident str p
-        then
-          let m = matched_string str in
-            k m {< p = p + String.length m >}
-        else
-          emptyResult
+      fun cs k -> (*super # look cs k*)
+        try
+          let l = String.length cs in
+          let m = String.sub str p l in
+          let p = p + l in
+          if cs = m
+          then k m {< p = p >}
+          else emptyResult
+        with Invalid_argument _ -> emptyResult
 
     method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        if p = String.length str
-        then k "<EOF>" {< p = p >}
+        let p' =
+          if string_match ws str p
+          then p + (String.length (matched_string str))
+          else p
+        in
+        if p' = String.length str
+        then k "EOF" self
         else emptyResult
   end
 
@@ -307,7 +323,7 @@ let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); 
   opnd: IDENT {3};
   intExpr: mixfixExpr[arithmetics][opnd];
   arithm: intExpr -EOF
-  ) *)
+  ) *) 
 
 ostap (
     var: x:IDENT {`Var x};
