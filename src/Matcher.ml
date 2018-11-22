@@ -162,14 +162,13 @@ let of_chars chars =
   List.iter (Buffer.add_char buf) chars;
   Buffer.contents buf
 
-class stream (s : string) =
+class t (s : String.t) =
   object (self : 'self)
     val regexps = Hashtbl.create 256
     val p       = 0
     val coord   = (1, 1)
     val skipper = defaultSkipper
     val context : aux = `Init
-    val lexbuf = Lexing.from_string s
 
     method coord = coord
     method line  = fst coord
@@ -178,7 +177,6 @@ class stream (s : string) =
     method pos   = p
     method str   = s
     method chrs  = of_string s
-    method lexbuf = lexbuf
 
     method equal : 'self -> bool =
       fun s' -> (s = s' # str) && (p = s' # pos)
@@ -191,7 +189,7 @@ class stream (s : string) =
         | `Skipped (p, coord) -> ((sk p coord) :> aux)
       in {< skipper = sk; context = newContext >}
 
-    method private failed : 'b . string -> (int * int) -> ('self, 'b, Reason.t) result =
+    method private failed : 'b . String.t -> (int * int) -> ('self, 'b, Reason.t) result =
       fun x c -> Failed (reason (Msg.make x [||] (Msg.Locator.Point c)))
 
     method private proceed : 'b . (int -> (int * int) -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
@@ -210,7 +208,7 @@ class stream (s : string) =
       then String.sub s p n
       else String.sub s p (String.length s - p)
 
-    method regexp : 'b . string -> string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    method regexp : 'b . String.t -> String.t -> ('a -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun name str -> self#get name
           (try Hashtbl.find regexps str with Not_found ->
              let regexp = Re_str.regexp str in
@@ -218,7 +216,7 @@ class stream (s : string) =
              regexp
           )
 
-    method get : 'b . string -> regexp -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    method get : 'b . String.t -> regexp -> ('a -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun name regexp k -> self#proceed
           (fun p coord ->
              if string_match regexp s p
@@ -227,11 +225,11 @@ class stream (s : string) =
                let l = length m in
                let p = p + l in
                let c = Msg.Coord.shift coord m 0 l in
-               k m {< p = p;  coord = c; context = ((self#skip p c) :> aux) >}
+               k (m, coord) {< p = p;  coord = c; context = ((self#skip p c) :> aux) >}
              else self#failed (sprintf "\"%s\" expected" name) coord
           )
 
-    method look : 'b. string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    method look : 'b. String.t -> ('a -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun str k -> self#proceed
           (fun p coord ->
              try
@@ -240,7 +238,7 @@ class stream (s : string) =
                let p = p + l in
                let c = Msg.Coord.shift coord m 0 (length m) in
                if str = m
-               then k m {< p = p; coord = c; context = ((self#skip p c) :> aux) >}
+               then k (m, coord) {< p = p; coord = c; context = ((self#skip p c) :> aux) >}
                else self#failed (sprintf "\"%s\" expected" str) coord
              with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
           )
@@ -257,11 +255,11 @@ class stream (s : string) =
               emptyResult
         )
  *)
-    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    method getEOF : 'b . ('a -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k -> self#proceed
           (fun p coord ->
              if p = length s
-             then k "<EOF>" {< p = p; coord = coord>}
+             then k ("<EOF>", coord) {< p = p; coord = coord>}
              else self#failed "<EOF> expected" coord
           )
 

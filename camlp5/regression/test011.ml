@@ -18,53 +18,56 @@
 open Re_str
 open Ostap
 open Types
-open Matcher
 
-class lexer (str :  string) =
-  object (self : 'self) inherit stream str as super
+class lexer (s : string) =
+  object (self : 'self)
 
     val ws    = regexp "[' ''\n''\t']+"
     val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
+    val p = 0
+    val s = s
 
-    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+    method private pos = p
+    method private str = s
+    method equal : 'self -> bool =
+      fun s' -> (s = s' # str) && (p = s' # pos)
+
+    method getIDENT : 'b . (String.t -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k ->
-        let p' =
-          if string_match ws str p
-          then p + (String.length (matched_string str))
+        let p =
+          if string_match ws s p
+          then p + (String.length (matched_string s))
           else p
         in
-        if string_match ident str p'
+        if string_match ident s p
         then
-          let m = matched_string str in
-          k m {< p = p' + String.length m >}
+          let m = matched_string s in
+          k m {< p = p + String.length m >}
         else
           emptyResult
 
-    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun cs k -> (*super # look cs k*)
-        try
-          let p =
-            if string_match ws str p
-            then p + (String.length (matched_string str))
-            else p
-          in
-          let l = String.length cs in
-          let m = String.sub str p l in
-          let p = p + l in
-          if cs = m
-          then k m {< p = p >}
-          else emptyResult
-        with Invalid_argument _ -> emptyResult
-
-    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        let p' =
-          if string_match ws str p
-          then p + (String.length (matched_string str))
+    method look : 'b . String.t -> (String.t -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun x k ->
+        let p =
+          if string_match ws s p
+          then p + (String.length (matched_string s))
           else p
         in
-        if p' = String.length str
-        then k "EOF" self
+        if string_match (regexp (quote x)) s p
+        then
+          let m = matched_string s in
+          k m {< p = p + String.length m >}
+        else emptyResult
+
+    method getEOF : 'b . (String.t -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
+      fun k ->
+        let p =
+          if string_match ws s p
+          then p + (String.length (matched_string s))
+          else p
+        in
+        if p = String.length s
+        then k "EOF" {< p = p >}
         else emptyResult
   end
 

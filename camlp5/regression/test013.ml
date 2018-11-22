@@ -5,53 +5,16 @@ open Matcher
 open Printf
 open Lazy
 
-class lexer (str :  string) =
-  object (self : 'self) inherit stream str as super
+class lexer s =
+  let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
+  let const = Re_str.regexp "[0-9]+" in
+  object (self)
 
-    val ws    = regexp "[' ''\n''\t']+"
-    val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
-    val const = Re_str.regexp "[0-9]+"
+    inherit Matcher.t s
 
-    method getCONST : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        let p' =
-          if string_match ws str p
-          then p + (String.length (matched_string str))
-          else p
-        in
-        if string_match const str p'
-        then
-          let m = matched_string str in
-          k m {< p = p' + String.length m >}
-        else
-          emptyResult
+    method skip p c = skip s p c
+    method getCONST : 'b . (Token.t -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result = self#get "constant" const
 
-    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun cs k -> (*super # look cs k*)
-        try
-          let p =
-            if string_match ws str p
-            then p + (String.length (matched_string str))
-            else p
-          in
-          let l = String.length cs in
-          let m = String.sub str p l in
-          let p = p + l in
-          if cs = m
-          then k m {< p = p >}
-          else emptyResult
-        with Invalid_argument _ -> emptyResult
-
-    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        let p' =
-          if string_match ws str p
-          then p + (String.length (matched_string str))
-          else p
-        in
-        if p' = String.length str
-        then k "EOF" self
-        else emptyResult
   end
 
 ostap (

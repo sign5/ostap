@@ -426,8 +426,9 @@ EXTEND
       let body = <:expr< $p$ _ostap_stream >> in
       (* let typ = <:ctyp< # $list:["matcher_stream"]$ >> in *)
       (* let typ = <:ctyp< $uid:"Matcher"$ . $lid:"stream"$ >> in *)
-      let typ = <:ctyp< # $list:["Matcher"; "stream"]$ >> in
-      let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, body)] in
+      (* let typ = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+      (* let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, body)] in *)
+      let pwel = [(<:patt< $lid:"_ostap_stream"$ >>, Ploc.VaVal None, body)] in
       let f = <:expr< fun [$list:pwel$] >> in
       (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
       f
@@ -591,8 +592,8 @@ EXTEND
       [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
         let args' =
   	match args with
-  	  None   -> [(*<:patt< (_ostap_stream : #Matcher.stream) >>*)]
-  	| Some l -> l @ [(*<:patt< (_ostap_stream : #Matcher.stream) >>*)]
+  	  None   -> [(*<:patt< (_ostap_stream : #Matcher.t) >>*)]
+  	| Some l -> l @ [(*<:patt< (_ostap_stream : #Matcher.t) >>*)]
         in
         let rule =
   	List.fold_right
@@ -750,8 +751,15 @@ EXTEND
       let name   = <:expr< $str:s$ >> in
       let regexp = <:expr< $name$ ^ "\\\\\\\\b" >> in
       let look   = <:expr< _ostap_stream # regexp ($name$) ($regexp$) >> in
-      let typ    = <:ctyp< # $list:["Matcher"; "stream"]$ >> in
-      let pwel   = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, look)] in
+      let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
+      let strType = <:ctyp< $uid:"String"$ . $lid:"t"$ >> in
+      let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
+      let contType = <:ctyp< '$"alook"$ -> '$"self"$ -> $resType$ >> in
+      let methodType = <:ctyp< ! $list:["b"]$ . $strType$ -> $strType$ -> $contType$ -> $resType$ >> in
+      let fl = [("regexp", methodType)(*; ("equal", <:ctyp< '$"self"$ -> bool >>)*)] in
+      let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
+      (* let typ    = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+      let pwel   = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
       let (e, s) = (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr name))) in
       ((None, true, None, e), s)
     ] |
@@ -813,23 +821,44 @@ EXTEND
     ] |
     [ p=STRING ->
           let look = <:expr< _ostap_stream # look $str:p$ >> in
+          let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
+          let strType = <:ctyp< $uid:"String"$ . $lid:"t"$ >> in
+          let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
+          let contType = <:ctyp< '$"alook"$ -> '$"self"$ -> $resType$ >> in
+          let methodType = <:ctyp< ! $list:["b"]$ . $strType$ -> $contType$ -> $resType$ >> in
+          let fl = [("look", methodType)(*; ("equal", <:ctyp< '$"self"$ -> bool >>)*)] in
+          let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
           (* let typ = <:ctyp< # $list:["matcher_stream"]$ >> in *)
           (* let typ = <:ctyp< $uid:"Matcher"$ . $lid:"stream"$ >> in *)
-          let typ = <:ctyp< # $list:["Matcher"; "stream"]$ >> in
-          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, look)] in
+          (* let typ = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string p))
     ] |
     [ "$"; "("; p=expr; ")" ->
           let look = <:expr< _ostap_stream # look ($p$) >> in
-          let typ = <:ctyp< # $list:["Matcher"; "stream"]$ >> in
-          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, look)] in
+          let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
+          let strType = <:ctyp< $uid:"String"$ . $lid:"t"$ >> in
+          let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
+          let contType = <:ctyp< '$"alook"$ -> '$"self"$ -> $resType$ >> in
+          let methodType = <:ctyp< ! $list:["b"]$ . $strType$ -> $contType$ -> $resType$ >> in
+          let fl = [("look", methodType)(*; ("equal", <:ctyp< '$"self"$ -> bool >>)*)] in
+          let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
+          (* let typ = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
     [ "@"; "("; p=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
           let look = <:expr< _ostap_stream # regexp ($name$) ($p$) >> in
-          let typ = <:ctyp< # $list:["Matcher"; "stream"]$ >> in
-          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, look)] in
+          let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
+          let strType = <:ctyp< $uid:"String"$ . $lid:"t"$ >> in
+          let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
+          let contType = <:ctyp< '$"alook"$ -> '$"self"$ -> $resType$ >> in
+          let methodType = <:ctyp< ! $list:["b"]$ . $strType$ -> $strType$ -> $contType$ -> $resType$ >> in
+          let fl = [("regexp", methodType)(*; ("equal", <:ctyp< '$"self"$ -> bool >>)*)] in
+          let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
+          (* let typ = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
           (<:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p)))
     ] |
     [ "$" -> (<:expr< Ostap.Combinators.lift >>, None) ] |

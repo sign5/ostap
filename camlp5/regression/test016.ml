@@ -12,36 +12,12 @@ module H = Hashtbl.Make(struct
 
 
 class lexer (str :  string) =
-  object (self : 'self) inherit stream str as super
+  let skip  = Skip.create [Skip.whitespaces " \n\t\r"] in
+  object (self : 'self)
 
-    val ws    = regexp "[' ''\n''\t']+"
+    inherit Matcher.t str as super
 
-    method look : 'b . string -> (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun cs k -> (*super # look cs k*)
-        try
-          let p =
-            if string_match ws str p
-            then p + (String.length (matched_string str))
-            else p
-          in
-          let l = String.length cs in
-          let m = String.sub str p l in
-          let p = p + l in
-          if cs = m
-          then k m {< p = p >}
-          else emptyResult
-        with Invalid_argument _ -> emptyResult
-
-    method getEOF : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k ->
-        let p' =
-          if string_match ws str p
-          then p + (String.length (matched_string str))
-          else p
-        in
-        if p' = String.length str
-        then k "EOF" self
-        else emptyResult
+    method skip p c = skip str p c
   end
 
 ostap (
