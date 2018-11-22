@@ -18,7 +18,8 @@
  type ('a, 'b) tag = Parsed of 'a * 'b option | Failed of 'b option
  type ('stream, 'b, 'c) result = ('b * 'stream, 'c) tag
 
- let emptyResult = Failed None
+let emptyResult = Failed None
+let failWith x = Failed (Some x)
 
  module K :
    sig
