@@ -125,38 +125,28 @@ module Lexers =
       object(self : 'self)
 	inherit checkKeywords keywords
 	method virtual get      : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-  method private getIdent : 'b. (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
+  method private getIdent : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
    fun k -> self#get name regexp
        (fun t s ->
           let r = Token.repr t in
           if self#keyword r
-          (* then Types.emptyResult *)
           then Types.failWith (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
-          else k t s)
-   (* fun k ->
-	  Types.bind
-	    (self#get name regexp)
-	    k
-	    (fun t ->
-	       let r = Token.repr t in
-	       if self#keyword r then `Fail (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
-	       else `Ok r
-	    ) *)
+          else k r s)
       end
 
     class virtual uident keywords s =
       object inherit genericIdent "[A-Z]\([a-zA-Z_0-9]\)*\\b" "u-identifier" keywords s as ident
-	method getUIDENT : 'b. (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getUIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
     class virtual lident keywords s =
       object inherit genericIdent "[a-z]\([a-zA-Z_0-9]\)*\\b" "l-identifier" keywords s as ident
-	method getLIDENT : 'b. (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getLIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
     class virtual ident keywords s =
       object inherit genericIdent "[a-zA-Z]\([a-zA-Z_0-9]\)*\\b" "identifier" keywords s as ident
-	method getIDENT : 'b. (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
+	method getIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
     class virtual decimal s =
@@ -165,10 +155,6 @@ module Lexers =
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getDECIMAL  : 'b. (int -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
           fun k -> self#get "decimal constant" regexp (fun t s -> k (int_of_string (Token.repr t)) s)
-	  (* fun k -> Types.bind
-	    (self#get "decimal constant" regexp)
-	    k
-      (fun t -> `Ok (int_of_string @@ Token.repr t)) *)
       end
 
     class virtual string s =
@@ -177,10 +163,6 @@ module Lexers =
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getSTRING   : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
           fun k -> self#get "decimal constant" regexp (fun t s -> k (Token.repr t) s)
-	  (* fun k -> Types.bind
-	    (self#get "string constant" regexp)
-	    k
-	    (fun t -> `Ok (Token.repr t)) *)
       end
 
     class virtual char s =
@@ -189,10 +171,6 @@ module Lexers =
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getCHAR     : 'b. (Char.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
           fun k -> self#get "character constant" regexp (fun t s -> k ((Token.repr t).[1]) s)
-	  (* fun k -> Types.bind
-	    (self#get "character constant" regexp)
-	    k
-	    (fun t -> `Ok ((Token.repr t))) *)
       end
 
     class skip skippers s =
@@ -206,8 +184,11 @@ module Lexers =
   let parse l p =
     Combinators.unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
       (fun x -> `Ok x)
-      (fun (Some err) ->
-         let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
-         let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
-         `Fail (Msg.toString m)
+      (fun x ->
+         match x with
+         | Some err ->
+           let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
+           let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
+           `Fail (Msg.toString m)
+         | None -> `Fail "Oh, fuck"
       )

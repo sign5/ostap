@@ -242,19 +242,7 @@ class t (s : String.t) =
                else self#failed (sprintf "\"%s\" expected" str) coord
              with Invalid_argument _ -> self#failed (sprintf "\"%s\" expected" str) coord
           )
-(*
-    val ident = regexp "[a-zA-Z]\([a-zA-Z0-9]\)*"
-    method getIDENT : 'b . (string -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
-      fun k -> self#proceed
-        (fun p coord ->
-            if string_match ident s p
-            then
-              let m = matched_string s in
-              k m {< p = p + String.length m >}
-            else
-              emptyResult
-        )
- *)
+
     method getEOF : 'b . ('a -> 'self -> ('self, 'b, Reason.t) result) -> ('self, 'b, Reason.t) result =
       fun k -> self#proceed
           (fun p coord ->

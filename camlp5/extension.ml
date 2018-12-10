@@ -692,7 +692,7 @@ EXTEND
               ([], 0)
           in
           match tuple with
-          []  -> (<:expr< () >>, true)
+            []  -> (<:expr< () >>, true)
           | [x] -> (x, false) (*!!!*)
           |  _  -> (<:expr< ($list:tuple$) >>, true)
       in

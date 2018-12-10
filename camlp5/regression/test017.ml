@@ -119,8 +119,8 @@ let expr ops opnd =
           }
     )
   in
-  ostap (inner[0][id]) *)
-
+  ostap (inner[0][id])
+ *)
 (*
 let mixfixExpr ops opnd =
   let lastPart l = List.hd (List.rev l) in
@@ -324,8 +324,8 @@ let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); 
                      ((not isInterm, None), [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Simple 0]))]);
                      ((isInterm, None),     [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Opt (0, 1)]))])
                   |] *)
-
-(* ostap (
+(*
+ ostap (
   opnd: IDENT {3};
   intExpr: mixfixExpr[arithmetics][opnd];
   arithm: intExpr -EOF
@@ -336,12 +336,12 @@ ostap (
     lambdaExpr: mixfixExpr[lamdba][var];
     lambda: lambdaExpr -EOF
   )
-
-(* let _ =
+(*
+let _ =
   match arithm (new lexer "a+a") (fun res s -> (*match res with
 	                                                   | `I _ ->*) Parsed ((res, s), None)) with
   | Parsed ((res, _), _) -> Printf.printf "%d\n" res
-  | Failed _ -> Printf.printf "Failed.\n" *)
+  | Failed _ -> Printf.printf "Failed.\n"*)
 
 let _ =
   let rec print res =

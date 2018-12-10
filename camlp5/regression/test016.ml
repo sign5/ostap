@@ -22,7 +22,7 @@ class lexer (str :  string) =
 
 ostap (
   l:
-     a:p -"." -"x" {`Lp a}
+    a:p -"." -"x" {`Lp a}
    | -"x" {`Lx} ;
 
   p:

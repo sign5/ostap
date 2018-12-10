@@ -1,20 +1,24 @@
 open Lazy
 open Matcher
 open Types
+open Reason
 
 let memo_k =
   fun k ->
     let table : ('a * 'stream, ('stream, 'b, 'c) result) Hashtbl.t = Hashtbl.create 16 in
     fun a s ->
-      match (Hashtbl.fold (fun (a', s') r' acc -> match acc with
-                                           | Some _                   -> acc
-                                           | None when (a = a') &&
-                                                       (s # equal s') -> Some r'
-                                           | _                        -> None
-                          ) table None) with
-      | None   -> let r = k a s in
-                  Hashtbl.add table (a, s) r;
-                  r
+      match (Hashtbl.fold
+              (fun (a', s') r' acc ->
+                 match acc with
+                 | Some _ -> acc
+                 | None when ((Pervasives.compare : int -> int -> int) (Obj.magic a) (Obj.magic a') == 0) && (s # equal s') -> Some r'
+                 | _ -> None)
+              table None) with
+      | None ->
+        let r = k a s in
+        (match r with
+        | Empty -> r
+        | _ -> Hashtbl.add table (a, s) r; r)
       | Some r -> r
 
 let join = function
@@ -62,17 +66,20 @@ let memoresult =
         ks := K.singleton k;
         p (memo_k (fun a s ->
              match List.find_all (fun (s', a') -> (a = a') && (s # equal s')) !ss with
-       | [] -> (ss := (s, a) :: !ss;
-                K.fold (fun k acc -> acc <@> (k a s)) !ks (Failed None))
-             |  _ -> Failed None
+             | [] -> (ss := (s, a) :: !ss;
+                      K.fold (fun k acc -> acc <@> (k a s)) !ks (Empty))
+             |  _ -> Empty
           )))
-      else (ks := K.add k !ks;
-      List.fold_left (fun acc x -> match acc, x with
-                                   | Parsed _,    _           -> acc
-                                   | Failed _,    Parsed _    -> x
-                                   | Failed opt1, Failed opt2 -> Failed (opt2))
-                    (Failed None)
-                    (List.map (fun (s, a) -> (k a s)) !ss))
+      else
+        (ks := K.add k !ks;
+         List.fold_left (fun acc x -> match acc, x with
+                                      | Parsed _, _           -> acc
+                                      | Failed _, Parsed _    -> x
+                                      | Failed _, Failed opt2 -> Failed (opt2)
+                                      | Empty, _              -> x
+                                      | _, Empty              -> acc)
+                        Empty
+                        (List.map (fun (s, a) -> (k a s)) !ss))
 
 let memo =
   fun f ->
@@ -105,25 +112,39 @@ let opt =
 let (<?>) = opt
 
 let rec manyFold =
-  fun f init p -> (empty |> fun _ -> return init) <|>
-                  (p                 |> (fun xp  ->
-                   manyFold f init p |> (fun xps ->
-                   return (f xp xps))))
-
+  fun f init p s k -> (empty |> fun _ -> return init) s k <@>
+                      (p                 |> (fun xp  ->
+                       manyFold f init p |> (fun xps ->
+                       return (f xp xps)))) s k
+(*
 let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
   fun p s k ->
     let result : ('stream, 'b, 'c) result ref = ref (k [] s) in
     let rec loop alist stream =
-      p stream (fun a stream' ->
+      p stream (memo_k (fun a stream' ->
                   let alist' = List.rev (a :: (List.rev alist)) in
                   let curResult = k (alist') stream' in
                   result := curResult <@> !result;
                   let tmp = loop (alist') stream' in
-                  curResult)
+                  curResult))
     in
     let tmp = loop [] s in
-    !result
+    !result *)
 
+let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p s k ->
+    let rec loop alist stream result =
+      result <@>
+      p stream (memo_k (fun a stream' ->
+                  let alist' = List.rev (a :: (List.rev alist)) in
+                  let curResult = k (alist') stream' in
+                  loop (alist') stream' (curResult <@> result)))
+  in
+  loop [] s (k [] s)
+(*
+let many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p s k -> manyFold (fun xp xps -> xp :: xps) [] p s k
+ *)
 let (<*>) = many
 
 let someFold =
