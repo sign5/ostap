@@ -65,7 +65,7 @@ let memoresult =
       then (
         ks := K.singleton k;
         p (memo_k (fun a s ->
-             match List.find_all (fun (s', a') -> (a = a') && (s # equal s')) !ss with
+            match List.find_all (fun (s', a') -> ((Pervasives.compare : int -> int -> int) (Obj.magic a) (Obj.magic a') == 0) && (s # equal s')) !ss with
              | [] -> (ss := (s, a) :: !ss;
                       K.fold (fun k acc -> acc <@> (k a s)) !ks (Empty))
              |  _ -> Empty
@@ -151,13 +151,14 @@ let someFold =
   fun f init p -> p                 |> (fun xp  ->
                   manyFold f init p |> (fun xps ->
                   return (f xp xps)))
-(*
-let some : ('a, 'b) parser -> ('a, 'b list) parser =
-  fun p ->
-    (someFold (fun x acc -> fun l -> acc (x :: l)) (fun x -> x) p) --> (fun t -> t [])
+
+let some : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p -> p        |> (fun x  ->
+          (many p)  |> (fun xs ->
+          return (x :: xs)))
 
 let (<+>) = some
-*)
+
 let guard =
   fun p f r s k ->
     p s (memo_k (fun a s -> if f a

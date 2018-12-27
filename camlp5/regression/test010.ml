@@ -72,6 +72,108 @@ class lexer (s : string) =
   end
 
 module X =
+struct
+  let parse _ostap_stream =
+    Ostap.Combinators.alt
+      (fun
+        (_ostap_stream :
+           <
+           look: 'b .
+                   String.t ->
+         ('alook -> 'self -> ('self, 'b, 'c) Types.result) ->
+         ('self, 'b, 'c) Types.result   ;.. >
+         as 'self)
+        -> _ostap_stream#look ",")
+      (fun
+        (_ostap_stream :
+           <
+           look: 'b .
+                   String.t ->
+         ('alook -> 'self -> ('self, 'b, 'c) Types.result) ->
+         ('self, 'b, 'c) Types.result   ;.. >
+         as 'self)
+        -> _ostap_stream#look ",-") _ostap_stream
+end
+
+  let (_fakename1, _fakename2) =
+    let _generated_fixpoint _f1 _f2 =
+      let rec _p1 =
+        lazy
+          (let _table = Hashtbl.create 16 in
+           fun _param1 ->
+           fun _s ->
+             match Hashtbl.fold
+                     (fun _param'1 ->
+                        fun p' ->
+                        fun acc ->
+                          match acc with
+                          | Some _ -> acc
+                          | None when true && (_param1 == _param'1) ->
+                            Some p'
+                          | _ -> None) _table None
+             with
+             | None ->
+               let _r =
+                 _f1 (fun _t -> Lazy.force_val _p1 _t)
+                   (fun _t -> Lazy.force_val _p2 _t) _param1 in
+               (Hashtbl.add _table _param1 _r; _r _s)
+             | Some x -> x _s)
+      and _p2 =
+        lazy
+          (let _table = Hashtbl.create 16 in
+           fun _s ->
+             match Hashtbl.fold
+                     (fun () ->
+                        fun p' ->
+                        fun acc ->
+                          match acc with
+                          | Some _ -> acc
+                          | None when true -> Some p'
+                          | _ -> None) _table None
+             with
+             | None ->
+               let _r =
+                 _f2 (fun _t -> Lazy.force_val _p1 _t)
+                   (fun _t -> Lazy.force_val _p2 _t) in
+               (Hashtbl.add _table () _r; _r _s)
+             | Some x -> x _s) in
+      ((fun _t -> Lazy.force_val _p1 _t), (fun _t -> Lazy.force_val _p2 _t)) in
+    let _fakename1 list m elem =
+      Ostap.Combinators.seq elem
+        (fun (hd as _1) ->
+           Ostap.Combinators.map (fun (tl as _0) -> hd :: tl)
+             (Ostap.Combinators.many
+                (Ostap.Combinators.seq X.parse (fun _ -> elem))))
+    and _fakename2 list m =
+      Ostap.Combinators.seq
+        (list
+           (fun _ostap_stream ->
+              (fun
+                (_ostap_stream :
+                   <
+                   getIDENT: 'b .
+                               ('aIDENT ->
+                                'self -> ('self, 'b, 'c) Types.result)
+                 -> ('self, 'b, 'c) Types.result   ;.. >
+                 as 'self)
+                -> _ostap_stream#getIDENT) _ostap_stream))
+        (fun (_ as _0) ->
+           Ostap.Combinators.map (fun _ -> _0)
+             (fun
+               (_ostap_stream :
+                  <
+                  getEOF: 'b .
+                            ('aEOF -> 'self -> ('self, 'b, 'c) Types.result)
+                -> ('self, 'b, 'c) Types.result   ;.. >
+                as 'self)
+               -> _ostap_stream#getEOF)) in
+    _generated_fixpoint _fakename1 _fakename2 in
+  let list _param1 _s = _fakename1 _param1 _s
+and m  _s = _fakename2 _s 
+
+
+(*
+module X =
   struct
 
     let parse = ostap ("," | ",-")
@@ -82,7 +184,7 @@ ostap (
   list[elem] : hd:elem tl:(- !(X.parse) elem)* {hd :: tl};
   m : list[ostap (IDENT)] -EOF
 )
-
+ *)
 let _ =
   begin match m (new lexer "r,-t , f , g ,     u, i ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) ->

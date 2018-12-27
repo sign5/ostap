@@ -223,7 +223,7 @@ let ariphmetics = [| (Lefta, [([`Simpl (ostap ("")); `Simpl (ostap ("+")); `Simp
                               ([`Simpl (ostap ("match")); `Simpl (ostap ("with")); `Compl ([ostap ("l"); ostap ("o"); ostap ("l")], (fun l -> List.hd (List.hd l)), [0; 0])], ((fun [x; y; z] -> x - y), [0; 0]))])
                   |] *)
 
-let mixfixExpr ops opnd =
+let mixfixExpr f ops opnd =
   let fstParts l = List.rev @@ List.tl @@ List.rev l in
   let lastPart l = List.hd (List.rev l) in
   let midParts l = List.tl (fstParts l) in
@@ -232,7 +232,7 @@ let mixfixExpr ops opnd =
   let n = Array.length ops in
   let id x = x in
   let ostap (
-      inner[l][c] : !(
+      inner[l][c] : f [
     if n <= l then
       ostap (x:opnd {c x})
     else
@@ -240,7 +240,7 @@ let mixfixExpr ops opnd =
         (List.fold_left
            (fun acc elem -> (
               let passSema lvl = lvl = l || isInterm lvl in
-              let oparts = fst elem in
+              let oparts = List.map (fun opart -> ostap(- $(opart))) (fst elem) in
               let opsema = fst (snd elem) in
               let levels = snd (snd elem) in
               let backbone oparts levels =
@@ -266,7 +266,7 @@ let mixfixExpr ops opnd =
                   | `Simple lvl ->
                     ostap (opart o:inner[lvl][id] {c o})
                   | `Many (lvl, folder) ->
-                    ostap (opart pre:inner[lvl][c] o:(inner[lvl][id])* {folder (pre :: o)}
+                    ostap (opart pre:inner[lvl][c] o:(inner[lvl][id])+ {folder (pre :: o)}
                           | opart {folder []})
                   | `Opt (lvl, default) ->
                     ostap (opart o:(inner[lvl][c])? {match o with Some x -> x | None -> default})
@@ -303,17 +303,23 @@ let mixfixExpr ops opnd =
               [ostap (x:inner[!i+1][id] {c x})]
            )
            (snd ops.(l))
-        ))) in
+        )]) in
   ostap (inner[0][id])
 
 let isInterm = true
 
+let lamdba = [| ((not isInterm, Right), [(["^"; "."; ""], ((fun [x; y] -> `Lamdba (x, y)),  [`Simple 4; `Simple 0]))]);
+                ((not isInterm, Left),  [([""; " "; ""],  ((fun [x; y] -> `Compose (x, y)), [`Simple 2; `Simple 1]))]);
+                ((not isInterm, None),  [(["("; ")"],     ((fun [x] -> `Parenth x),         [`Simple 0]))]);
+                ((isInterm, None),      [([""; ""; ""],   ((fun _ -> `Var ""),              [`Opt (3, `Var ""); `Many (4, fun _ -> `Var "")]))])
+             |]
+(*
 let lamdba = [| ((not isInterm, Right), [([ostap ("^"); ostap ("."); ostap ("")], ((fun [x; y] -> `Lamdba (x, y)),  [`Simple 4; `Simple 0]))]);
                 ((not isInterm, Left),  [([ostap (""); ostap (" "); ostap ("")],  ((fun [x; y] -> `Compose (x, y)), [`Simple 2; `Simple 1]))]);
                 ((not isInterm, None),  [([ostap ("("); ostap (")")],             ((fun [x] -> `Parenth x), [`Simple 0]))]);
                 ((isInterm, None),      [([ostap (""); ostap (""); ostap ("")],   ((fun _ -> `Var ""), [`Opt (3, `Var ""); `Many (4, fun _ -> `Var "")]))])
              |]
-
+ *)
 (*
 let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); ostap (""); ostap (" else "); ostap ("")], ((fun [b; vthen; elifs; velse] -> if b = 1 then vthen else (if elifs != -1 then elifs else velse)), [`Simple 2; `Simple 2; `Many (1, fun l -> List.fold_right (fun v a -> if v != -1 then v else a) l (-1)); `Simple 2]))]);
                      ((isInterm, None),     [([ostap (" elif "); ostap (" then "); ostap ("")], ((fun [b; x] -> if b = 1 then x else -1), [`Simple 2; `Simple 2]))]);
@@ -330,10 +336,11 @@ let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); 
   intExpr: mixfixExpr[arithmetics][opnd];
   arithm: intExpr -EOF
   ) *)
+let id = fun x -> x
 
 ostap (
     var: x:IDENT {`Var x};
-    lambdaExpr: mixfixExpr[lamdba][var];
+    lambdaExpr: mixfixExpr[id][lamdba][var];
     lambda: lambdaExpr -EOF
   )
 (*
