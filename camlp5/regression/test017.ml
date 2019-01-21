@@ -330,6 +330,7 @@ let arithmetics = [| ((not isInterm, None), [([ostap ("if "); ostap (" then "); 
                      ((not isInterm, None), [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Simple 0]))]);
                      ((isInterm, None),     [([ostap ("("); ostap (")")], ((fun [x] -> x), [`Opt (0, 1)]))])
                   |] *)
+
 (*
  ostap (
   opnd: IDENT {3};

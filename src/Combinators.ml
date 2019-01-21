@@ -95,7 +95,11 @@ let memo =
       | Some x -> x k
 
 let alt =
-  fun x y -> memo (fun s k -> (x s k) <@> (y s k))
+  fun x y -> memo (fun s k -> let res1 = (x s k) in
+                    match res1 with
+                    | Parsed _ -> res1
+                    | _ -> res1 <@> (y s k))
+  (* fun x y -> memo (fun s k -> (x s k) <@> (y s k)) *)
 
 let (<|>) = alt
 
@@ -105,9 +109,10 @@ let seq =
 let (|>) = seq
 
 let opt =
-  fun p s k -> let s' = Oo.copy s in
-               let k' = memo_k (fun a s -> k (Some a) s) in
-    (p s k') <@> (k None s')
+  fun p ->
+    memo (fun s k -> let s' = Oo.copy s in
+                     let k' = memo_k (fun a s -> k (Some a) s) in
+                     (p s k') <@> (k None s'))
 
 let (<?>) = opt
 
