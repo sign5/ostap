@@ -256,5 +256,3 @@ module ShallowLanguageImplemenation =
     let _ = List.iter (fun n -> Printf.printf "fact %d = %d\n" n (fact n)) [1; 2; 3; 4; 5; 6; 7]
                                               
   end
-  
-
