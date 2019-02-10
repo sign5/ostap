@@ -137,7 +137,7 @@ let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser
     !result *)
 
 let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
-  fun p s k ->
+  fun p -> memo (fun s k ->
     let rec loop alist stream result =
       result <@>
       p stream (memo_k (fun a stream' ->
@@ -145,7 +145,7 @@ let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser
                   let curResult = k (alist') stream' in
                   loop (alist') stream' (curResult <@> result)))
   in
-  loop [] s (k [] s)
+  loop [] s (k [] (Oo.copy s)))
 (*
 let many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
   fun p s k -> manyFold (fun xp xps -> xp :: xps) [] p s k
