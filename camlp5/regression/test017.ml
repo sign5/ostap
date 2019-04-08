@@ -222,7 +222,7 @@ let ariphmetics = [| (Lefta, [([`Simpl (ostap ("")); `Simpl (ostap ("+")); `Simp
                               ([`Simpl (ostap ("")); `Simpl (ostap ("-")); `Simpl (ostap (""))], ((fun [x; y] -> x - y), [0; 0]));
                               ([`Simpl (ostap ("match")); `Simpl (ostap ("with")); `Compl ([ostap ("l"); ostap ("o"); ostap ("l")], (fun l -> List.hd (List.hd l)), [0; 0])], ((fun [x; y; z] -> x - y), [0; 0]))])
                   |] *)
-
+(*
 let mixfixExpr f ops opnd =
   let fstParts l = List.rev @@ List.tl @@ List.rev l in
   let lastPart l = List.hd (List.rev l) in
@@ -312,6 +312,93 @@ let lamdba = [| ((not isInterm, Right), [(["^"; "."; ""], ((fun [x; y] -> `Lamdb
                 ((not isInterm, Left),  [([""; " "; ""],  ((fun [x; y] -> `Compose (x, y)), [`Simple 2; `Simple 1]))]);
                 ((not isInterm, None),  [(["("; ")"],     ((fun [x] -> `Parenth x),         [`Simple 0]))]);
                 ((isInterm, None),      [([""; ""; ""],   ((fun _ -> `Var ""),              [`Opt (3, `Var ""); `Many (4, fun _ -> `Var "")]))])
+             |]
+*)
+
+let mixfixExpr f ops opnd =
+  let fstParts l = List.rev @@ List.tl @@ List.rev l in
+  let lastPart l = List.hd (List.rev l) in
+  let midParts l = List.tl (fstParts l) in
+  let assoc    l =fst ops.(l) in
+  let n = Array.length ops in
+  let id x = x in
+  let ostap (
+      inner[l][c] : f [
+    if n <= l then
+      ostap (x:opnd {c x})
+    else
+      Ostap.Combinators.altl
+        (List.fold_left
+           (fun acc elem -> (
+              let passSema lvl = lvl = l in
+              let ostapExpr = fst elem in
+              let opsema    = fst (snd elem) in
+              let levels    = snd (snd elem) in
+              let backbone oparts levels =
+                (List.fold_right
+                  (fun opart level acc ->
+                     match level with
+                     | `Simple l         -> ostap (-opart x:inner[l][id]   a:acc {x :: a})
+                     | `Many (l, folder) -> ostap (-opart x:(inner[l][id])* a:acc {(folder x) :: a})
+                     | `Opt (l, default) -> ostap (-opart x:(inner[l][id])? a:acc {(match x with Some x -> x | None -> default) :: a})
+                  )
+                   levels
+                  (ostap (lastPart[oparts] {[]}))
+                )
+              in
+              (* if (assoc l = Left) then
+                let midPart = if ((List.length oparts) = 2) then ostap ("" {[]})
+                              else backbone (midParts oparts) (midParts levels)
+                in
+                let fstPart =
+                  let opart = List.hd oparts in
+                  match List.hd levels with
+                  | `Simple lvl ->
+                    ostap (opart o:inner[lvl][id] {c o})
+                  | `Many (lvl, folder) ->
+                    ostap (opart pre:inner[lvl][c] o:(inner[lvl][id])+ {folder (pre :: o)}
+                          | opart {folder []})
+                  | `Opt (lvl, default) ->
+                    ostap (opart o:(inner[lvl][c])? {match o with Some x -> x | None -> default})
+                in
+                let res = ostap (f:fstPart m:midPart {f :: m}) in
+                let opart = lastPart oparts in
+                match lastPart levels with
+                | `Simple lvl ->
+                  ostap (r:res o:inner[lvl][if passSema lvl then (fun y -> opsema (r @ [y])) else id] opart {o})
+                | `Many (lvl, folder) ->
+                  ostap (r:res o:(inner[lvl][id])* post:inner[lvl][if passSema lvl then (fun y -> opsema (r @ [folder (o @ [y])])) else id] opart {post}
+                        | r:res -opart {opsema (r @ [folder []])})
+                | `Opt (lvl, default) ->
+                  ostap (r:res o:(inner[lvl][if passSema lvl then (fun y -> opsema (r @ [y])) else id])? opart {match o with Some x -> x | None -> opsema (r @ [default])})
+              else
+              if (assoc l = Right) then
+                let res = backbone (fstParts oparts) (fstParts levels) in
+                let opart = lastPart oparts in
+                match lastPart levels with
+                | `Simple lvl ->
+                  ostap (r:res o:inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [y]))) else id] opart {o})
+                | `Many (lvl, folder) ->
+                  ostap (r:res o:(inner[lvl][id])* post:inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [folder (o @ [y])]))) else id] opart {post}
+                        | r:res -opart {c (opsema (r @ [folder []]))})
+                | `Opt (lvl, default) ->
+                  ostap (r:res o:(inner[lvl][if passSema lvl then (fun y -> c (opsema (r @ [y]))) else id])? opart {match o with Some x -> x | None -> c (opsema (r @ [default]))})
+              else *)
+                let res = backbone oparts levels in
+                ostap (x:res {c (opsema x)})) :: acc)
+           (if isInterm l then []
+            else
+              let i = ref l in
+              while ((!i+1 < n) && (isInterm (!i+1))) do i := !i+1 done;
+              [ostap (x:inner[!i+1][id] {c x})]
+           )
+           (snd ops.(l))
+        )]) in
+  ostap (inner[0][id])
+
+let lamdba = [| (Right, [(fun x y -> ostap ("^" x "." y), ((fun [x; y] -> `Lamdba (x, y)),  [4; 0]))]);
+                (Left,  [(fun x y -> ostap (x y),         ((fun [x; y] -> `Compose (x, y)), [2; 1]))]);
+                (None,  [(fun x   -> ostap ("(" x ")"),   ((fun [x] -> `Parenth x),         [0]))])
              |]
 (*
 let lamdba = [| ((not isInterm, Right), [([ostap ("^"); ostap ("."); ostap ("")], ((fun [x; y] -> `Lamdba (x, y)),  [`Simple 4; `Simple 0]))]);

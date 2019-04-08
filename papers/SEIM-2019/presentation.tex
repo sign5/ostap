@@ -1,0 +1,402 @@
+\documentclass[10pt, mathserif]{beamer}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english,russian]{babel}
+\usepackage[T2A]{fontenc}
+
+\usepackage{listings}
+\usepackage{color}
+\usepackage{amssymb, amsmath}
+\usepackage[all]{xy}
+\usepackage{alltt}
+\usepackage{pslatex}
+\usepackage{epigraph}
+\usepackage{verbatim}
+\usepackage{graphicx}
+\usepackage{latexsym}
+\usepackage{array}
+\usepackage{mathrsfs}
+
+\makeatletter
+\newcolumntype{e}[1]{%--- Enumerated cells ---
+   >{\minipage[t]{\linewidth}%
+     \NoHyper%                Hyperref adds a vertical space
+     \let\\\tabularnewline
+     \enumerate
+        \addtolength{\rightskip}{0pt plus 50pt}% for raggedright
+        \setlength{\itemsep}{-\parsep}}%
+   p{#1}%
+   <{\@finalstrut\@arstrutbox\endenumerate
+     \endNoHyper
+     \endminipage}}
+
+\newcolumntype{i}[1]{%--- Itemized cells ---
+   >{\minipage[t]{\linewidth}%
+        \let\\\tabularnewline
+        \itemize
+           \addtolength{\rightskip}{0pt plus 50pt}%
+           \setlength{\itemsep}{-\parsep}}%
+   p{#1}%
+   <{\@finalstrut\@arstrutbox\enditemize\endminipage}}
+
+\AtBeginDocument{%
+    \@ifpackageloaded{hyperref}{}%
+        {\let\NoHyper\relax\let\endNoHyper\relax}}
+\makeatother
+
+\definecolor{shadecolor}{gray}{1.00}
+\definecolor{darkgray}{gray}{0.30}
+
+\newcommand{\set}[1]{\{#1\}}
+\newcommand{\angled}[1]{\langle {#1} \rangle}
+\newcommand{\fib}{\rightarrow_{\mathit{fib}}}
+\newcommand{\fibm}{\Rightarrow_{\mathit{fib}}}
+\newcommand{\oo}[1]{{#1}^o}
+\newcommand{\inml}[1]{\mbox{\lstinline{#1}}}
+
+\setlength{\epigraphwidth}{.55\textwidth}
+
+\definecolor{light-gray}{gray}{0.90}
+\newcommand{\graybox}[1]{\colorbox{light-gray}{#1}}
+
+\newcommand{\nredrule}[3]{
+  \begin{array}{cl}
+    \textsf{[{#1}]}&
+    \begin{array}{c}
+      #2 \\
+      \hline
+      \raisebox{-1pt}{\ensuremath{#3}}
+    \end{array}
+  \end{array}}
+
+\newcommand{\naxiom}[2]{
+  \begin{array}{cl}
+    \textsf{[{#1}]} & \raisebox{-1pt}{\ensuremath{#2}}
+  \end{array}}
+
+\lstdefinelanguage{ocaml}{
+keywords={ostap, let, begin, end, in, match, type, and, fun,
+function, try, with, class, object, method, of, rec, repeat, until,
+while, not, do, done, as, val, inherit, module, sig, @type, struct,
+if, then, else, open, virtual, new, fresh},
+sensitive=true,
+basicstyle=\small\ttfamily,
+commentstyle=\scriptsize\rmfamily,
+keywordstyle=\underline,
+identifierstyle=\ttfamily,
+basewidth={0.5em,0.5em},
+columns=fixed,
+fontadjust=true,
+literate={->}{{$\to$}}3
+         {===}{{$\equiv$}}1
+}
+
+\lstdefinelanguage{scheme}{
+keywords={define, conde, fresh},
+sensitive=true,
+basicstyle=\small,
+commentstyle=\scriptsize\rmfamily,
+keywordstyle=\ttfamily\bfseries,
+identifierstyle=\ttfamily,
+basewidth={0.5em,0.5em},
+columns=fixed,
+fontadjust=true,
+literate={==}{{$\equiv$}}1
+}
+
+\lstset{
+basicstyle=\small,
+identifierstyle=\ttfamily,
+keywordstyle=\bfseries,
+commentstyle=\scriptsize\rmfamily,
+basewidth={0.5em,0.5em},
+fontadjust=true,
+%escapechar=!,
+language=ocaml,
+mathescape=true
+}
+
+\setbeamertemplate{footline}[frame number]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{blocks}[rounded][shadow=true]
+\beamertemplateballitem
+
+\mode<presentation>{
+  \usetheme{default}
+}
+
+\theoremstyle{definition}
+
+\title{Монадические парсер-комбинаторы с поддержкой симметричной альтерации и левой рекурсии}
+
+\author{Данила Боровков}
+
+\date{
+   \vskip 3cm
+   \small{
+   \textbf{SEIM}\\
+   13 апреля 2019 \\
+   Санкт-Петербург}
+}
+
+\begin{document}
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}[fragile]{Синтаксический анализ и парсер-комбинаторы}
+  \begin{itemize}
+    \item Синтаксический анализатор (или парсер) может быть реализован в виде монады
+    \item Парсер-комбинаторы~---подход к построению парсеров
+      \begin{itemize}
+         \item парсер как значение
+         \item парсеры высших порядков
+         \item поддержка специализированной пользовательсвой семантики
+      \end{itemize}
+   \item Классические трудности: левая рекурсия и несимметричная альтерация (``longest match first'')
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Левая рекурсия}
+
+  Необходимость использования парсеров высших порядков для разработки библиотек переиспользуемых
+  синтаксических компонент
+  \vskip3mm
+
+  Для парсеров высших порядков статическое определение левой рекурсии неразрешимо:
+  \vskip3mm
+
+  \begin{center}
+    \texttt{A[B] : B ...}~--- леворекурсивен, если $\mathtt{A[B]} \equiv B$
+  \end{center}
+  \vskip3mm
+
+  $\Rightarrow$ левая рекурсия не может быть устранена статически с помощью классических подходов
+
+\end{frame}
+
+\begin{frame}[fragile]{Несимметричная альтерация}
+
+  В классических парсер-комбинаторах \texttt{A | B} работает, как ожидается, только если
+
+  \[
+  \forall\omega\in{\mathscr L}(\mathtt{A})\;\;\forall\psi\not=\epsilon\;\;\omega\psi\not\in{\mathscr L}(\mathtt{B})
+  \]
+
+
+  $\Rightarrow$ в выражении
+
+  \begin{center}
+    \verb/opnd (">=" | ">") opnd/
+  \end{center}
+
+  нельзя поменять местами \verb/">="/ и \verb/">"/
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS + мемоизация}
+
+  \textbf{Meerkat}~--- библиотека CF-полных парсер-комбинаторов на Scala (Izmaylova, Afroozeh, Van der Storm, PEPM-2015)
+  \vskip3mm
+  Мемоизация выражена с помощью трех функций: \lstinline|memo|, \lstinline|memo_k| и \lstinline|memo_result|
+
+  \begin{itemize}
+    \item[+] нечувствительны к левой рекурсии и ``longest match first''
+    \item[-] строят SPPF (нет пользовательской семантики)
+    \item[-] не монадические
+  \end{itemize}
+  \vskip3mm
+
+  $\Rightarrow$ требуется доработка
+
+\end{frame}
+
+\begin{frame}[fragile]{Библиотека \textbf{Ostap}}
+  \begin{itemize}
+    \item Direct-style монадические парсер-комбинаторы
+    \item Синтаксическое расширение для \texttt{ocaml}
+    \item Объектно-ориентированное представление входного потока
+  \end{itemize}
+  \vskip3mm
+  \begin{lstlisting}
+    ostap (
+      list[elem] : hd:elem tl:elem* {hd :: tl};
+      main       : list[ostap (IDENT)] -EOF
+    )
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{Переход от direct-style к CPS: типы}
+  Было:
+  \begin{lstlisting}
+    type ($\alpha$, $\beta$) tag = Parsed of $\alpha$ * $\beta$ option | Failed of $\beta$ option
+    type ($\sigma$, $\alpha$, $\beta$) result  = ($\alpha$ * $\sigma$, $\beta$) tag
+    and  ($\sigma$, $\alpha$, $\beta$) parser  = $\sigma$ -> ($\sigma$, $\alpha$, $\beta$) result
+  \end{lstlisting}
+
+  Стало:
+  \begin{lstlisting}
+    type ($\alpha$, $\beta$) tag =
+      Parsed of $\alpha$ * $\beta$ option
+    | Failed of $\beta$ option
+    | Empty
+    type ($\sigma$, $\alpha$, $\beta$) result = ($\alpha$ * $\sigma$, $\beta$) tag
+    type ($\alpha$, $\sigma$, $\beta$, $\gamma$) k = $\alpha$ -> $\sigma$ -> ($\sigma$, $\beta$, $\gamma$) result
+    type ($\alpha$, $\sigma$, $\beta$, $\gamma$) parser = $\sigma$ -> ($\alpha$, $\sigma$, $\beta$, $\gamma$) k -> ($\sigma$, $\beta$, $\gamma$) result
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: комбинаторы}
+
+  \begin{lstlisting}
+   let alt =
+     fun x y -> memo (fun s k -> (x s k) <@> (y s k))
+
+   let seq =
+     fun x y s k -> x s (memo_k (fun a s' -> y a s' k))
+
+   let opt = fun p -> memo (fun s k ->
+     let newk = memo_k (fun a s -> k (Some a) s) in
+     (p s newk) <@> (k None s))
+
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+  \begin{lstlisting}[basicstyle=\small]
+    let memo_result = fun p ->
+      let ss : ('stream * 'a) list ref = ref      [] in
+      let ks :                K.ks ref = ref K.empty in
+      fun k ->
+        if $\mbox{это первый запуск p}$
+        then (
+          ks := K.singleton k;
+          p (fun a s ->
+              $\mbox{если (s, a) не было в ss}$
+              $\mbox{записываем ее в ss и}$
+              $\mbox{запускаем на ней все продолжения из ks}$
+              $\mbox{иначе возвращаем Empty}$
+            )
+        )
+        else (
+          ks := K.add k !ks;
+          $\mbox{запустить k на всех сохраненных в ss парах}$
+        )
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{Остальное}
+
+  \begin{itemize}
+     \item Явно-полиморфные типы методов входного потока:
+
+       \begin{lstlisting}
+  <
+    getCONST : $\beta$ . ($\alpha$ -> 'self -> ('self, $\beta$, $\gamma$) result) ->
+                         ('self, $\beta$, $\gamma$) result;
+    ..
+  >
+       \end{lstlisting}
+
+     \item Генерируемая неподвижная точка для рекурсивных определений:
+
+       \begin{lstlisting}
+         ostap (x : "a"; y[z] : y[z] "+" x | x)
+
+                           $\Downarrow$
+
+         let (x, y) =
+           let generated_fixpoint = ... in
+           let x'   = fun x y -> ostap ("a")
+           and y' z = fun x y -> ostap (y[z] "+" x | x)
+         in generated_fixpoint x' y'
+       \end{lstlisting}
+
+  \end{itemize}
+
+\end{frame}
+
+\begin{frame}[fragile]{Апробация}
+  \begin{itemize}
+     \item Проведено регрессионное тестирование на оригинальных тестах Ostap, которые покрывают всю функциональность библиотеки
+     \vskip3mm
+
+     \item Апробировано на учебном компиляторе
+  \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]{Апробация: несимметричность альтерации}
+
+  Если переставить \lstinline|``>=''| и \lstinline|``>''|, то парсер останется работоспособным и время работы не изменится.
+
+  \begin{lstlisting}[basicstyle=\small]
+    Ostap.Util.expr [|
+      `Lefta, [$\verb/"!!"/$];
+      `Lefta, [$\verb/"&&"/$];
+      `Nona , [$\verb/"=="/$; $\verb/"!="/$; $\verb/"<="/$; $\verb/"<"/$; $\verb/">="/$; $\verb/">"/$];
+      `Lefta, [$\verb/"++"/$; $\verb/"+"/$; $\verb/"-"/$];
+      `Lefta, [$\verb/"*"/$; $\verb/"//"$; $\verb/"%"/$]
+    |]
+  \end{lstlisting}
+  \vskip3mm
+\end{frame}
+
+\begin{frame}[fragile]{Апробация: левая рекурсия}
+
+  Время работы не изменилось, но появилась возможность использовать леворекурсивные описания.
+  \vskip3mm
+  \begin{lstlisting}[basicstyle=\small]
+    parse:
+          s:stmt ";" ss:parse {Seq (s, ss)}
+        | stmt;
+
+                   $\Downarrow$
+
+    parse:
+          ss:parse ";" s:stmt {Seq (ss, s)}
+        | stmt;
+
+  \end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{Апробация: производительность}
+
+Тестовый набор вида \lstinline|``x1 := {expr}; ... xn := {expr}''|
+\vskip3mm
+
+  \begin{table}[htbp]
+  \begin{center}
+  \begin{tabular}{|c|c|c|}
+  \hline
+  \textbf{Размер} & \multicolumn{2}{|c|}{\textbf{Время разбора, c}} \\
+  \cline{2-3}
+  \textbf{примера} & \textbf{Старая версия} & \textbf{Новая версия} \\
+  \hline
+  100& 0,25& 0,13 \\
+  \hline
+  200& 0,52& 0,24 \\
+  \hline
+  400& 2,13& 0,56 \\
+  \hline
+  800& 9,19& 1,97 \\
+  \hline
+  1200& 21,93& 4,61 \\
+  \hline
+  1600& 42,65& 9,50 \\
+  \hline
+  \end{tabular}
+  \vskip3mm
+  %\caption{Результаты сравнения производительности старой и новой реализаций библиотеки}
+  \label{tab1}
+  \end{center}\vspace{-10mm}
+  \end{table}
+
+\end{frame}
+
+\end{document}
