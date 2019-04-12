@@ -72,7 +72,7 @@ class lexer (s : string) =
   end
 
   ostap (
-    expr   : x:(expr -"+")+ y:mulli {match x with [] -> y | x::_ -> `Add (x, y)};
+        expr   : x:(expr -"+")+ y:mulli {match x with [] -> y | x::_ -> `Add (x, y)};
         mulli  : x:mulli "*" y:primary  {`Mul (x, y)} | primary;
         primary: d:IDENT {`Const d} | n:IDENT {`Var n} | -"(" expr -")"
       )

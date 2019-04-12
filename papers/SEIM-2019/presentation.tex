@@ -198,7 +198,6 @@ mathescape=true
 
   \textbf{Meerkat}~--- библиотека CF-полных парсер-комбинаторов на Scala (Izmaylova, Afroozeh, Van der Storm, PEPM-2015)
   \vskip3mm
-  Мемоизация выражена с помощью трех функций: \lstinline|memo|, \lstinline|memo_k| и \lstinline|memo_result|
 
   \begin{itemize}
     \item[+] нечувствительны к левой рекурсии и ``longest match first''
@@ -251,42 +250,314 @@ mathescape=true
 \begin{frame}[fragile]{CPS: комбинаторы}
 
   \begin{lstlisting}
-   let alt =
-     fun x y -> memo (fun s k -> (x s k) <@> (y s k))
+   let alt x y =
+         (fun s k -> (x s k) <@> (y s k))
 
-   let seq =
-     fun x y s k -> x s (memo_k (fun a s' -> y a s' k))
+   let seq x y =
+     fun s k -> x s (         (fun a s' -> y a s' k))
 
-   let opt = fun p -> memo (fun s k ->
-     let newk = memo_k (fun a s -> k (Some a) s) in
-     (p s newk) <@> (k None s))
+   let opt p =
+          (fun s k ->
+       let newk =          (fun a s -> k (Some a) s) in
+       (p s newk) <@> (k None s))
 
   \end{lstlisting}
 
 \end{frame}
 
+\begin{frame}[fragile]{CPS: комбинаторы}
+
+  \begin{lstlisting}
+   let alt x y =
+    $\boxed{\text{memo}}$(fun s k -> (x s k) <@> (y s k))
+
+   let seq x y =
+     fun s k -> x s ($\boxed{\text{memo\_k}}$(fun a s' -> y a s' k))
+
+   let opt p =
+    $\boxed{\text{memo}}$(fun s k ->
+       let newk =$\boxed{\text{memo\_k}}$(fun a s -> k (Some a) s) in
+       (p s newk) <@> (k None s))
+
+  \end{lstlisting}
+
+\end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+%   \begin{lstlisting}[basicstyle=\small]
+%     let memo_result = fun p ->
+%       let ss : ('stream * 'a) list ref = ref      [] in
+%       let ks :                K.ks ref = ref K.empty in
+%       fun k ->
+%         if $\mbox{это первый запуск p}$
+%         then (
+%           ks := K.singleton k;
+%           p (fun a s ->
+%               $\mbox{если (s, a) не было в ss}$
+%               $\mbox{записываем ее в ss и}$
+%               $\mbox{запускаем на ней все продолжения из ks}$
+%               $\mbox{иначе возвращаем Empty}$
+%             )
+%         )
+%         else (
+%           ks := K.add k !ks;
+%           $\mbox{запустить k на всех сохраненных в ss парах}$
+%         )
+%   \end{lstlisting}
+%
+% \end{frame}
+
 \begin{frame}[fragile]{CPS: мемоизация}
 
-  \begin{lstlisting}[basicstyle=\small]
-    let memo_result = fun p ->
-      let ss : ('stream * 'a) list ref = ref      [] in
-      let ks :                K.ks ref = ref K.empty in
-      fun k ->
-        if $\mbox{это первый запуск p}$
-        then (
-          ks := K.singleton k;
-          p (fun a s ->
-              $\mbox{если (s, a) не было в ss}$
-              $\mbox{записываем ее в ss и}$
-              $\mbox{запускаем на ней все продолжения из ks}$
-              $\mbox{иначе возвращаем Empty}$
-            )
-        )
-        else (
-          ks := K.add k !ks;
-          $\mbox{запустить k на всех сохраненных в ss парах}$
-        )
-  \end{lstlisting}
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo :
+
+  memo_result:
+    ss:
+    ks:
+
+  p "aaab" k_0
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss:
+    ks: k_0
+
+  p "aaab" k_ss
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss:
+    ks: k_0
+
+  'a' "aaab" k_ss
+
+  (p 'a') "aaab" k_ss
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss:
+    ks: k_0
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab"
+
+  (p 'a') "aaab" k_ss
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab")
+    ks: k_0
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab"
+
+  (p 'a') "aaab" k_ss
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab")
+    ks: k_0
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab")
+    ks: k_0
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss)
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab"
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+  k_ss "aa" "ab"
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab"), ("aa", "ab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab"
+        $\Downarrow$
+  k_1 "aa" "ab"
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab"), ("aa", "ab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+        $\Downarrow$
+  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b"
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab"), ("aa", "ab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+        $\Downarrow$
+  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b" $\Rightarrow$ k_0 "aa" "ab"
+                         $\Downarrow$
+                    k_1 "aaa" "b"
+\end{lstlisting}
+
+\end{frame}
+
+\begin{frame}[fragile]{CPS: мемоизация}
+
+\begin{lstlisting}[basicstyle=\small]
+  p = p 'a' | 'a'
+
+  memo : (p' "aaab", "aaab")
+
+  memo_result:
+    ss: ("a", "aab"), ("aa", "ab")
+    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+
+  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+  
+  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+        $\Downarrow$
+  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+                         $\Downarrow$
+                    k_1 "aaa" "b" $\Rightarrow$ error
+\end{lstlisting}
 
 \end{frame}
 
