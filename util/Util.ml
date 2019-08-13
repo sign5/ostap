@@ -128,6 +128,13 @@ module Infix =
 
     type ('e, 'a) t = ('e, 'a) ops * (((('e, 'a) ops) option) PointerMap.t) * (((('e, 'a) ops) option) PointerMap.t) * ((('e, 'a) ops) StringMap.t)
 
+    let singleton a s sem =
+      let newp = Obj.magic (a, [s, sem]) in
+      newp,
+      (PointerMap.add newp None PointerMap.empty),
+      (PointerMap.add newp None PointerMap.empty),
+      (StringMap.add s newp StringMap.empty)
+
     let name infix =
       let b = Buffer.create 64 in
       Buffer.add_string b "__Infix_";
@@ -137,30 +144,6 @@ module Infix =
     let next (_, _, nexts, _) l = match l with Some l -> PointerMap.find (Obj.magic l) nexts
 
     let start (start, _, _, _) = Obj.magic start
-
-    let default sem =
-      let (start, prevs, nexts, nodes) =
-        Array.fold_right
-          (fun (a, s) (next, prevs, nexts, nodes) ->
-             let newp = Obj.magic (a, List.map (fun s -> s, sem s) s) in
-             (Some newp),
-             (match next with None -> prevs | Some x -> PointerMap.add x (Some newp) prevs),
-             (PointerMap.add newp next nexts),
-             (List.fold_right (fun s map -> StringMap.add s newp map) s nodes)
-          )
-          [|
-            `Righta, [":="];
-            `Righta, [":"];
-            `Lefta , ["!!"];
-            `Lefta , ["&&"];
-            `Lefta , ["=="; "!="; "<="; "<"; ">="; ">"];
-            `Lefta , ["++"; "+" ; "-"];
-            `Lefta , ["*" ; "/"; "%"];
-          |]
-          (None, PointerMap.empty, PointerMap.empty, StringMap.empty)
-       in
-       let start = match start with Some x -> x in
-       start, PointerMap.add start None prevs, nexts, nodes
 
     let find_op (start, prevs, nexts, nodes) op cb ce =
       match StringMap.find_opt op nodes with
