@@ -17,6 +17,8 @@
 \usepackage{array}
 \usepackage{mathrsfs}
 
+\renewcommand{\ttdefault}{cmtt}
+
 \makeatletter
 \newcolumntype{e}[1]{%--- Enumerated cells ---
    >{\minipage[t]{\linewidth}%
@@ -120,6 +122,7 @@ mathescape=true
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{blocks}[rounded][shadow=true]
 \beamertemplateballitem
+\usefont{T2A}{PTSans-TLF}{m}{n}
 
 \mode<presentation>{
   \usetheme{default}
@@ -147,7 +150,7 @@ mathescape=true
 \begin{frame}[fragile]{Синтаксический анализ и парсер-комбинаторы}
   \begin{itemize}
     \item Синтаксический анализатор (или парсер) может быть реализован в виде монады
-    \item Парсер-комбинаторы~---подход к построению парсеров
+    \item Парсер-комбинаторы~--- подход к построению парсеров
       \begin{itemize}
          \item парсер как значение
          \item парсеры высших порядков
@@ -213,7 +216,7 @@ mathescape=true
 \begin{frame}[fragile]{Библиотека \textbf{Ostap}}
   \begin{itemize}
     \item Direct-style монадические парсер-комбинаторы
-    \item Синтаксическое расширение для \texttt{ocaml}
+    \item Синтаксическое расширение для \texttt{OCaml}
     \item Объектно-ориентированное представление входного потока
   \end{itemize}
   \vskip3mm
@@ -246,38 +249,38 @@ mathescape=true
   \end{lstlisting}
 
 \end{frame}
+%
+% \begin{frame}[fragile]{CPS: комбинаторы}
+%
+%   \begin{lstlisting}
+%    let alt x y =
+%          (fun s k -> (x s k) < @ > (y s k))
+%
+%    let seq x y =
+%      fun s k -> x s (         (fun a s' -> y a s' k))
+%
+%    let opt p =
+%           (fun s k ->
+%        let newk =          (fun a s -> k (Some a) s) in
+%        (p s newk) < @ > (k None s))
+%
+%   \end{lstlisting}
+%
+% \end{frame}
 
 \begin{frame}[fragile]{CPS: комбинаторы}
 
   \begin{lstlisting}
    let alt x y =
-         (fun s k -> (x s k) <@> (y s k))
+    $\only<2>{\boxed{\text{memo}}}$(fun s k -> (x s k) < @ > (y s k))
 
    let seq x y =
-     fun s k -> x s (         (fun a s' -> y a s' k))
+     fun s k -> x s $\only<2>{\text{(}\boxed{\text{memo\_k}}}$(fun a s' -> y a s' k)$\only<2>{\text{)}}$
 
    let opt p =
-          (fun s k ->
-       let newk =          (fun a s -> k (Some a) s) in
-       (p s newk) <@> (k None s))
-
-  \end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: комбинаторы}
-
-  \begin{lstlisting}
-   let alt x y =
-    $\boxed{\text{memo}}$(fun s k -> (x s k) <@> (y s k))
-
-   let seq x y =
-     fun s k -> x s ($\boxed{\text{memo\_k}}$(fun a s' -> y a s' k))
-
-   let opt p =
-    $\boxed{\text{memo}}$(fun s k ->
-       let newk =$\boxed{\text{memo\_k}}$(fun a s -> k (Some a) s) in
-       (p s newk) <@> (k None s))
+    $\only<2>{\boxed{\text{memo}}}$(fun s k ->
+       let newk =$\only<2>{\boxed{\text{memo\_k}}}$(fun a s -> k (Some a) s) in
+       (p s newk) < @ > (k None s))
 
   \end{lstlisting}
 
@@ -308,255 +311,242 @@ mathescape=true
 %
 % \end{frame}
 
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo :
-
-  memo_result:
-    ss:
-    ks:
-
-  p "aaab" k_0
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss:
-    ks: k_0
-
-  p "aaab" k_ss
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss:
-    ks: k_0
-
-  'a' "aaab" k_ss
-
-  (p 'a') "aaab" k_ss
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss:
-    ks: k_0
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab"
-
-  (p 'a') "aaab" k_ss
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab")
-    ks: k_0
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab"
-
-  (p 'a') "aaab" k_ss
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab")
-    ks: k_0
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab")
-    ks: k_0
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss)
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab"
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
-  k_ss "aa" "ab"
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab"), ("aa", "ab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
-  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab"
-        $\Downarrow$
-  k_1 "aa" "ab"
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab"), ("aa", "ab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
-  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
-        $\Downarrow$
-  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b"
-\end{lstlisting}
-
-\end{frame}
-
-\begin{frame}[fragile]{CPS: мемоизация}
-
-\begin{lstlisting}[basicstyle=\small]
-  p = p 'a' | 'a'
-
-  memo : (p' "aaab", "aaab")
-
-  memo_result:
-    ss: ("a", "aab"), ("aa", "ab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
-
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
-  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
-        $\Downarrow$
-  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b" $\Rightarrow$ k_0 "aa" "ab"
-                         $\Downarrow$
-                    k_1 "aaa" "b"
-\end{lstlisting}
-
-\end{frame}
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo:
+%
+%     ss:
+%     ks:
+%
+%   p "aaab" k_0
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss:
+%     ks: k_0
+%
+%   p "aaab" k_ss
+% \end{lstlisting}
+%
+% \end{frame}
+
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss:
+%     ks: k_0
+%
+%   'a' "aaab" k_ss
+%
+%   (p 'a') "aaab" k_ss
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss:
+%     ks: k_0
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab"
+%
+%   (p 'a') "aaab" k_ss
+% \end{lstlisting}
+%
+% \end{frame}
+
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab")
+%     ks: k_0
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab"
+%
+%   (p 'a') "aaab" k_ss
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab")
+%     ks: k_0
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab")
+%     ks: k_0
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss)
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab")
+%     ks: k_0, (fun s -> 'a' s k_ss) = k_1
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+%   $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab"
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab")
+%     ks: k_0, (fun s -> 'a' s k_ss) = k_1
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+%   $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+%   k_ss "aa" "ab"
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab"), ("aa", "ab")
+%     ks: k_0, (fun s -> 'a' s k_ss) = k_1
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+%   $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+%   k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab"
+%         $\Downarrow$
+%   k_1 "aa" "ab"
+% \end{lstlisting}
+%
+% \end{frame}
+
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab"), ("aa", "ab")
+%     ks: k_0, (fun s -> 'a' s k_ss) = k_1
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+%   $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+%   k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+%         $\Downarrow$
+%   k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b"
+% \end{lstlisting}
+%
+% \end{frame}
+%
+% \begin{frame}[fragile]{CPS: мемоизация}
+%
+% \begin{lstlisting}[basicstyle=\small]
+%   p = p 'a' | 'a'
+%
+%   memo: (p' "aaab", "aaab")
+%
+%     ss: ("a", "aab"), ("aa", "ab")
+%     ks: k_0, (fun s -> 'a' s k_ss) = k_1
+%
+%   'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
+%
+%   (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
+%   $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
+%   k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
+%         $\Downarrow$
+%   k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b" $\Rightarrow$ k_0 "aaa" "b"
+%                          $\Downarrow$
+%                     k_1 "aaa" "b"
+% \end{lstlisting}
+%
+% \end{frame}
 
 \begin{frame}[fragile]{CPS: мемоизация}
 
 \begin{lstlisting}[basicstyle=\small]
   p = p 'a' | 'a'
 
-  memo : (p' "aaab", "aaab")
+  memo: $\only<2->{\texttt{(p' ``aaab'', ``aaab'')}}$
 
-  memo_result:
-    ss: ("a", "aab"), ("aa", "ab")
-    ks: k_0, (fun s -> 'a' s k_ss) = k_1
+    ss: $\only<5->{\texttt{(a, ``aab'')}} \only<13->{\texttt{, (aa, ``ab'')}} \only<17->{\texttt{, (aaa, ``b'')}}$
+    ks: $\only<2->{\texttt{k\_0}} \only<9->{\texttt{, (fun a s -> 'a' s k\_ss) = k\_1}}$
 
-  'a' "aaab" k_ss $\Rightarrow$ k_ss "a" "aab" $\Rightarrow$ k_0 "a" "aab" $\Rightarrow$ error
-  
-  (p 'a') "aaab" k_ss $\Rightarrow$ p "aaab" (fun a s -> 'a' s k_ss) $\Rightarrow$
-  $\Rightarrow$ (fun a s -> 'a' s k_ss) "a" "aab" $\Rightarrow$
-  k_ss "aa" "ab" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
-        $\Downarrow$
-  k_1 "aa" "ab" $\Rightarrow$ k_ss "aaa" "b" $\Rightarrow$ k_0 "aa" "ab" $\Rightarrow$ error
-                         $\Downarrow$
-                    k_1 "aaa" "b" $\Rightarrow$ error
+  $\only<3->{\texttt{'a' ``aaab'' k\_ss}} \only<4->{\Rightarrow \texttt{k\_ss a ``aab''}} \only<6->{\Rightarrow \texttt{k\_0 a ``aab''}} \only<7->{\Rightarrow \texttt{Failure}}$
+  $\only<1>{\texttt{p ``aaab'' k\_0}} \only<2>{\texttt{p ``aaab'' k\_ss}}$
+  $\only<3->{\texttt{(p 'a') ``aaab'' k\_ss}} \only<8->{\Rightarrow \texttt{p ``aaab'' (fun a s -> 'a' s k\_ss)}} \only<9->{\Rightarrow}$
+  $\only<10->{\Rightarrow \texttt{(fun a s -> 'a' s k\_ss) a ``aab''}} \only<11->{\Rightarrow}$
+  $\only<12->{\texttt{k\_ss aa ``ab''}} \only<14->{\Rightarrow \texttt{k\_0 aa ``ab''}} \only<15->{\Rightarrow \texttt{Failure}}$
+        $\only<14->{\Downarrow}$
+  $\only<14->{\texttt{k\_1 aa ``ab''}} \only<16->{\Rightarrow \texttt{k\_ss aaa ``b''}} \only<18->{\Rightarrow \texttt{k\_0 aaa ``b''}} \only<19->{\Rightarrow \texttt{Failure}}$
+                           $\only<18->{\Downarrow}$
+                    $\only<18->{\texttt{k\_1 aaa ``b''}} \only<20->{\Rightarrow \texttt{Failure}}$
 \end{lstlisting}
 
 \end{frame}
@@ -603,7 +593,7 @@ mathescape=true
 
 \begin{frame}[fragile]{Апробация: несимметричность альтерации}
 
-  Если переставить \lstinline|``>=''| и \lstinline|``>''|, то парсер останется работоспособным и время работы не изменится.
+  Если переставить \lstinline|">="| и \lstinline|">"|, то парсер останется работоспособным и время работы не изменится.
 
   \begin{lstlisting}[basicstyle=\small]
     Ostap.Util.expr [|
@@ -638,7 +628,7 @@ mathescape=true
 
 \begin{frame}[fragile]{Апробация: производительность}
 
-Тестовый набор вида \lstinline|``x1 := {expr}; ... xn := {expr}''|
+Тестовый набор вида \lstinline|"x1 := {expr}; ... xn := {expr}"|
 \vskip3mm
 
   \begin{table}[htbp]
