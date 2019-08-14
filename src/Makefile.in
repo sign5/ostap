@@ -199,8 +199,8 @@ target_os = @target_os@
 target_vendor = @target_vendor@
 
 # type in sources here
-SOURCES = Pretty.ml PrioReorderer.ml BNF3.ml Types.ml Matcher.ml Combinators.ml Msg.ml Reason.ml Trap.ml
-MLI = Pretty.mli PrioReorderer.mli BNF3.mli Types.mli Matcher.mli Combinators.mli Msg.mli Reason.mli Trap.mli
+SOURCES = Pretty.ml PrioReorderer.ml BNF3.ml Error.ml Results.ml Matcher.ml Types.ml Combinators.ml Msg.ml Reason.ml Trap.ml
+MLI = Pretty.mli PrioReorderer.mli BNF3.mli Msg.mli Reason.mli Trap.mli
 
 # define macros that creates directiries
 mkinstalldirs = $(INSTALL_SCRIPT) -d
@@ -233,8 +233,8 @@ LIB := $(addsuffix .a, $(PACKAGE))
 BYTE := $(addsuffix .byte$(EXEEXT), $(PACKAGE))
 # executable native bytecode
 NATIVE := $(addsuffix .opt$(EXEEXT), $(PACKAGE))
-CMOPK = 
-CMXPK = 
+CMOPK =
+CMXPK =
 # interface for packed object
 CMIPK := $(addsuffix .cmi, undefined)
 # object for linking
@@ -255,7 +255,8 @@ TARGET = $(MLI) $(CMI) $(CMO)
 AM_P4FLAGS = -pp "$(CAMLP4OF) $(PARSER_INCLUDES)"
 
 # OCaml parser call with flags
-AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_log.cmo $(LOG) pa_gt.cmo -L `camlp5o -where`"
+#AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pr_o.cmo pa_log.cmo $(LOG) pa_gt.cmo -L `camlp5o -where`"
+AM_P5FLAGS := -pp "$(CAMLP5O) $(PARSER_INCLUDES) pa_log.cmo $(LOG) pa_gt.cmo -L `camlp5o -where`"
 
 # OCaml documentator called with flags
 AM_DOCFLAGS = -html
@@ -499,7 +500,7 @@ version.ml: $(top_srcdir)/VERSION
 .depend: $(SOURCES)
 	ocamldep $(PXFLAGS) $(SOURCES) $(MLI) > .depend
 
-doc:	
+doc:
 	ocamldoc $(MODULE_INCLUDES) $(AM_DOCFLAGS) $(PXFLAGS) -d $(top_srcdir)/doc/html/$(PACKAGE) *.mli
 
 install:

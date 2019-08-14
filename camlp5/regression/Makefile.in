@@ -251,7 +251,7 @@ CMO4CMA = $(CMO)
 # sources for .cmxa linking
 CMX4CMXA = $(CMO4CMA:.cmo=.cmx)
 DOCFILES = $(PACKAGE).ps $(PACKAGE).html
-TARGET = 
+TARGET =
 
 # OCaml parser called with flags
 AM_P4FLAGS = -pp "$(CAMLP4OF) $(PARSER_INCLUDES)"
@@ -578,7 +578,7 @@ version.ml: $(top_srcdir)/VERSION
 .depend: $(SOURCES)
 	ocamldep $(PXFLAGS) $(SOURCES) $(MLI) > .depend
 
-doc:	
+doc:
 	ocamldoc $(MODULE_INCLUDES) $(AM_DOCFLAGS) $(PXFLAGS) -d $(top_srcdir)/doc/html/$(PACKAGE) *.mli
 
 # do not install anyting
