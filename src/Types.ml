@@ -54,7 +54,7 @@ let failWith x = Failed (Some x)
    end
 
  type ('a, 'stream, 'b, 'c) k       = ('a, 'stream, 'b, 'c) K.t
- type ('a, 'stream, 'b, 'c) parserr  = 'stream -> ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
+ type ('a, 'stream, 'b, 'c) parser  = 'stream -> ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
  type ('a, 'stream, 'b, 'c) parser' =            ('a, 'stream, 'b, 'c) k -> ('stream, 'b, 'c) result
 
 let bind p k f =
@@ -70,10 +70,10 @@ let bind p k f =
 let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result =
   fun res1 res2 ->
     match res1, res2 with
-    | Parsed ((res, x), opt1), Failed opt2             -> Parsed ((res, x), opt1)
-    | Failed opt1,             Parsed ((res, x), opt2) -> Parsed ((res, x), opt1)
-    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> failwith "Ambiguous grammar"
-    | Failed None,             Failed opt2             -> Failed (opt2)
-    | Failed opt1,             Failed opt2             -> Failed (opt1)
+    | Parsed ((res, x), opt1), Failed opt2        -> Parsed ((res, x), opt1)
+    | Failed opt1,        Parsed ((res, x), opt2) -> Parsed ((res, x), opt1)
+    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> Parsed ((res, x), opt1)
+    | Failed None,        Failed opt2        -> Failed (opt2)
+    | Failed opt1,        Failed opt2        -> Failed (opt1)
     | Empty, _ -> res2
     | _, Empty -> res1

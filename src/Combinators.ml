@@ -121,8 +121,22 @@ let rec manyFold =
                       (p                 |> (fun xp  ->
                        manyFold f init p |> (fun xps ->
                        return (f xp xps)))) s k
+(*
+let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p s k ->
+    let result : ('stream, 'b, 'c) result ref = ref (k [] s) in
+    let rec loop alist stream =
+      p stream (memo_k (fun a stream' ->
+                  let alist' = List.rev (a :: (List.rev alist)) in
+                  let curResult = k (alist') stream' in
+                  result := curResult <@> !result;
+                  let tmp = loop (alist') stream' in
+                  curResult))
+    in
+    let tmp = loop [] s in
+    !result *)
 
-let rec many : ('a, 'stream, 'b, 'c) parserr -> ('a list, 'stream, 'b, 'c) parserr =
+let rec many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
   fun p -> memo (fun s k ->
     let rec loop alist stream result =
       result <@>
@@ -132,7 +146,10 @@ let rec many : ('a, 'stream, 'b, 'c) parserr -> ('a list, 'stream, 'b, 'c) parse
                   loop (alist') stream' (curResult <@> result)))
   in
   loop [] s (k [] (Oo.copy s)))
-
+(*
+let many : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p s k -> manyFold (fun xp xps -> xp :: xps) [] p s k
+ *)
 let (<*>) = many
 
 let someFold =
@@ -140,7 +157,12 @@ let someFold =
                   manyFold f init p |> (fun xps ->
                   return (f xp xps)))
 
-let rec some : ('a, 'stream, 'b, 'c) parserr -> ('a list, 'stream, 'b, 'c) parserr =
+(* let some : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
+  fun p -> p        |> (fun x  ->
+          (many p)  |> (fun xs ->
+          return (x :: xs)))
+*)
+let rec some : ('a, 'stream, 'b, 'c) parser -> ('a list, 'stream, 'b, 'c) parser =
   fun p -> memo (fun s k ->
     let rec loop alist stream =
       p stream (memo_k (fun a stream' ->
