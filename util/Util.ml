@@ -42,6 +42,10 @@ ostap (
 )
 
 ostap (
+  listBy1[delim][item]: h:item t:(-delim item)+ {h::t}
+)
+
+ostap (
   listWith[item][f][x]: listByWith[ostap (",")][item][f][x]
 )
 
@@ -71,6 +75,114 @@ let right f c x y = c (f x y)
 ostap (
   id[x]: x
 )
+
+(* Infix helpers *)
+module Infix =
+struct
+   type ('expr, 'atr, 'm, 'stream, 'b, 'c) ops  = [`Lefta | `Righta | `Nona] *
+                                                  (('atr -> ('atr * 'atr)) *
+                                                  (('m, 'stream, 'b, 'c) Types.parserr *
+                                                  (string * ('expr -> 'atr -> 'expr -> 'expr)) list))
+
+   let compare_ops ((_, (_, (_, xs))) : ('e, 'a, 'm, 'stream, 'b, 'c) ops) ((_, (_, (_, ys))) : ('e, 'a, 'm, 'stream, 'b, 'c) ops) =
+     Pervasives.compare (List.map fst xs) (List.map fst ys)
+
+   module StringMap  = Map.Make (String)
+   module PointerMap =
+      struct
+
+       include Map.Make (
+         struct
+           type t = Obj.t
+
+           let compare x y = compare_ops (Obj.magic x) (Obj.magic y)
+         end
+       )
+
+       let find (x : ('e, 'a, 'm, 'stream, 'b, 'c) ops) (m : 'v t) = find (Obj.repr x) m
+       let add (x : ('e, 'a, 'm, 'stream, 'b, 'c) ops) (v : 'v) (m : 'v t) = add (Obj.repr x) v m
+     end
+
+  type ('e, 'a, 'm, 'stream, 'b, 'c) t = ('e, 'a, 'm, 'stream, 'b, 'c) ops * (((('e, 'a, 'm, 'stream, 'b, 'c) ops) option) PointerMap.t) * (((('e, 'a, 'm, 'stream, 'b, 'c) ops) option) PointerMap.t) * ((('e, 'a, 'm, 'stream, 'b, 'c) ops) StringMap.t) * ((('e, 'a, 'm, 'stream, 'b, 'c) ops) array)
+
+  let left  f c x a y = f (c x) a y
+  let right f c x a y = c (f x a y)
+  let g assoc = match assoc with `Lefta | `Nona -> left | `Righta -> right
+  let toOstap s = ostap (- $(s))
+
+  let singleton a s (sem, atr) =
+    let newp = Obj.magic (a, (atr, (ostap (- $(s) {g a sem}), [s, sem]))) in
+    newp,
+    (PointerMap.add newp None PointerMap.empty),
+    (PointerMap.add newp None PointerMap.empty),
+    (StringMap.add s newp StringMap.empty),
+    ([| |])
+
+  let name infix =
+    let b = Buffer.create 64 in
+    Buffer.add_string b "__Infix_";
+    Seq.iter (fun c -> Buffer.add_string b (string_of_int @@ Char.code c)) @@ String.to_seq infix;
+    Buffer.contents b
+
+  let next   (_, _, nexts, _, _) l = match PointerMap.find (Obj.magic l) nexts with Some x -> x
+  let isLast (_, _, nexts, _, _) l = match PointerMap.find (Obj.magic l) nexts with None -> true | _ -> false
+  let start  (start, _, _, _, _)   = Obj.magic start
+  let arr    (_, _, _, _, arr)     = arr
+  let setArr (start, prevs, nexts, nodes, _) arr = (start, prevs, nexts, nodes, arr)
+
+  let find_op (start, prevs, nexts, nodes, arr) op cb ce =
+    match StringMap.find_opt op nodes with
+    | None -> ce ()
+    | Some p -> cb p (start, prevs, nexts, nodes, arr)
+
+  let no_op op coord = `Fail (Printf.sprintf "infix ``%s'' not found in the scope at %s" op (Msg.Coord.toString coord))
+
+  let at coord op newop (sem, _) infix =
+    find_op infix op
+      (fun p (start, prevs, nexts, nodes, arr) ->
+         let (assoc, (atr, (o, l))) = Obj.magic p in
+         let l = (newop, sem) :: l in
+         let newp = Obj.magic (assoc, (atr, (alt o (ostap (- $(newop) {g assoc sem})), l))) in
+         let newStart = match PointerMap.find p prevs with None -> newp | Some x -> start in
+         let newPrevs = PointerMap.add newp (PointerMap.find p prevs) (match PointerMap.find p nexts with None -> prevs | Some next -> PointerMap.add next (Some newp) prevs) in
+         let newNexts = PointerMap.add newp (PointerMap.find p nexts) (match PointerMap.find p prevs with None -> nexts | Some prev -> PointerMap.add prev (Some newp) nexts) in
+         let newNodes = List.fold_right (fun (s, _) map -> StringMap.add s newp map) l nodes in
+         `Ok (newStart, newPrevs, newNexts, newNodes, arr)
+      )
+      (fun _ -> no_op op coord)
+
+  let before coord op newop assoc (sem, atr) infix =
+    find_op infix op
+      (fun p (start, prevs, nexts, nodes, arr) ->
+         let newp = Obj.magic (assoc, (atr, (ostap (- $(newop) {g assoc sem}), [newop, sem]))) in
+         let newStart = match PointerMap.find p prevs with None -> newp | Some x -> start in
+         let newPrevs = PointerMap.add newp (PointerMap.find p prevs) (PointerMap.add p (Some newp) prevs) in
+         let newNexts = PointerMap.add newp (Some p) (match PointerMap.find p prevs with None -> nexts | Some prev -> PointerMap.add prev (Some newp) nexts) in
+         let newNodes = StringMap.add newop newp nodes in
+         `Ok (newStart, newPrevs, newNexts, newNodes, arr)
+      )
+      (fun _ -> no_op op coord)
+
+  let after coord op newop assoc (sem, atr) infix =
+    find_op infix op
+      (fun p (start, prevs, nexts, nodes, arr) ->
+         let newp = Obj.magic (assoc, (atr, (ostap (- $(newop) {g assoc sem}), [newop, sem]))) in
+         let newStart = start in
+         let newPrevs = PointerMap.add newp (Some p) (match PointerMap.find p nexts with None -> prevs | Some next -> PointerMap.add next (Some newp) prevs) in
+         let newNexts = PointerMap.add newp (PointerMap.find p nexts) (PointerMap.add p (Some newp) nexts) in
+         let newNodes = StringMap.add newop newp nodes in
+         `Ok (newStart, newPrevs, newNexts, newNodes, arr)
+      )
+      (fun _ -> no_op op coord)
+
+  let createArray (start, prevs, nexts, nodes, _) as infix =
+    let rec loop cur list =
+      if isLast infix cur then list
+      else
+        loop (next infix cur) (cur :: list)
+    in Array.of_list (List.rev (loop (Obj.magic start) []))
+
+end
 
 let expr f ops opnd =
   let ops =
