@@ -42,6 +42,10 @@ ostap (
 )
 
 ostap (
+  listBy1[delim][item]: h:item t:(-delim item)+ {h::t}
+)
+
+ostap (
   listWith[item][f][x]: listByWith[ostap (",")][item][f][x]
 )
 
@@ -190,5 +194,5 @@ module Lexers =
            let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
            let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
            `Fail (Msg.toString m)
-         | None -> `Fail "Oh, no error explanation"
+         | _ -> `Fail "Oh, no error explanation"
       )
