@@ -25,6 +25,16 @@ let join = function
 | None   -> fun y -> y
 | Some x -> function None -> Some x | Some y -> Some (x#add y)
 
+let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result =
+  fun res1 res2 ->
+    match res1, res2 with
+    | Parsed ((res, x), opt1), Failed opt2             -> Parsed ((res, x), opt1)
+    | Failed opt1,             Parsed ((res, x), opt2) -> Parsed ((res, x), opt2)
+    | Parsed ((_, _), _),      Parsed ((_, _), _)      -> failwith "Ambiguous grammar"
+    | Failed opt1,             Failed opt2             -> Failed (join opt1 opt2)
+    | Empty, _ -> res2
+    | _, Empty -> res1
+
 let comment str = function
 | None   -> None
 | Some m -> Some (m#comment str)
