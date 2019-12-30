@@ -42,7 +42,7 @@ ostap (
 )
 
 ostap (
-  listBy1[delim][item]: h:item t:(-delim item)+ {h::t}
+  list1By[delim][item]: h:item t:(-delim item)+ {h::t}
 )
 
 ostap (
@@ -128,14 +128,14 @@ module Lexers =
       let regexp = Re_str.regexp regexp in
       object(self : 'self)
 	inherit checkKeywords keywords
-	method virtual get      : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
-  method private getIdent : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-   fun k -> self#get name regexp
-       (fun t s ->
-          let r = Token.repr t in
-          if self#keyword r
-          then Types.failWith (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
-          else k r s)
+	method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
+        method private getIdent : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
+          fun k -> self#get name regexp
+                     (fun t s ->
+                       let r = Token.repr t in
+                       if self#keyword r
+                       then Types.failWith (new Reason.t (Msg.make "%0 expected" [|name|] (Token.loc t)))
+                       else k r s)
       end
 
     class virtual uident keywords s =
@@ -162,11 +162,23 @@ module Lexers =
       end
 
     class virtual string s =
-      let regexp = Re_str.regexp (*"\"\([^\"]\|\\\"\)*\""*) "\"[^\"]*\"" in
+      let regexp = Re_str.regexp (*"\"\([^\"]\|\\\"\)*\""*) (*"\"[^\"]*\""*) "\"\\([^\"]\\|\"\"\\)*\"" in
       object(self : 'self)
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getSTRING   : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-          fun k -> self#get "decimal constant" regexp (fun t s -> k (Token.repr t) s)
+          fun k -> self#get "string constant" regexp (fun t s -> k (let unquote s =
+                                                                      let s      = String.sub s 1 (String.length s - 2) in
+                                                                      let n      = String.length s in
+                                                                      let buf    = Buffer.create n in
+                                                                      let rec iterate i =
+                                                                        if i < n then (
+                                                                          Buffer.add_char buf s.[i];
+                                                                          iterate (i + if s.[i] = '"' then 2 else 1)
+                                                                        )
+                                                                      in
+                                                                      iterate 0;
+                                                                      Buffer.contents buf
+                                                                    in unquote @@ Token.repr t) s)
       end
 
     class virtual char s =
@@ -185,14 +197,14 @@ module Lexers =
 
   end
 
-  let parse l p =
-    Combinators.unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
-      (fun x -> `Ok x)
-      (fun x ->
-         match x with
-         | Some err ->
-           let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
-           let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
-           `Fail (Msg.toString m)
-         | _ -> `Fail "Oh, no error explanation"
-      )
+let parse l p =
+  Combinators.unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
+    (fun x -> `Ok x)
+    (fun x ->
+      match x with
+      | Some err ->
+         let [loc, m :: _] = err#retrieve (`First 1) (`Desc) in
+         let m =  match m with `Msg m -> m | `Comment (s, _) -> Msg.make s [||] loc in
+         `Fail (Msg.toString m)
+      | _ -> `Fail "Oh, no error explanation"
+    )
