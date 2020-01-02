@@ -139,17 +139,17 @@ module Lexers =
       end
 
     class virtual uident keywords s =
-      object inherit genericIdent "[A-Z]\([a-zA-Z_0-9]\)*\\b" "u-identifier" keywords s as ident
+      object inherit genericIdent "[A-Z][a-zA-Z_0-9]*\\b" "u-identifier" keywords s as ident
 	method getUIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
     class virtual lident keywords s =
-      object inherit genericIdent "[a-z]\([a-zA-Z_0-9]\)*\\b" "l-identifier" keywords s as ident
+      object inherit genericIdent "[a-z][a-zA-Z_0-9]*\\b" "l-identifier" keywords s as ident
 	method getLIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
     class virtual ident keywords s =
-      object inherit genericIdent "[a-zA-Z]\([a-zA-Z_0-9]\)*\\b" "identifier" keywords s as ident
+      object inherit genericIdent "[a-zA-Z][a-zA-Z_0-9]*\\b" "identifier" keywords s as ident
 	method getIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
       end
 
@@ -162,7 +162,7 @@ module Lexers =
       end
 
     class virtual string s =
-      let regexp = Re_str.regexp (*"\"\([^\"]\|\\\"\)*\""*) (*"\"[^\"]*\""*) "\"\\([^\"]\\|\"\"\\)*\"" in
+      let regexp = Re_str.regexp "\"\\([^\"]\\|\"\"\\)*\"" in
       object(self : 'self)
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getSTRING   : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
@@ -182,11 +182,17 @@ module Lexers =
       end
 
     class virtual char s =
-      let regexp = Re_str.regexp "'\([^']\|\\'\)'" in
+      let regexp = Re_str.regexp "'\\([^']\\|''\\|\\\\n\\|\\\\t\\)'" in
       object(self : 'self)
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getCHAR     : 'b. (Char.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
-          fun k -> self#get "character constant" regexp (fun t s -> k ((Token.repr t).[1]) s)
+          fun k -> self#get "character constant" regexp (fun t s -> k (let s = Token.repr t in
+                                                                       match String.sub s 1 (String.length s - 2) with
+                                                                       | "\\t" -> '\t'
+                                                                       | "\\n" -> '\n'
+                                                                       | "''"  -> '\''
+                                                                       | s     -> s.[0]
+                                                                      ) s)
       end
 
     class skip skippers s =
