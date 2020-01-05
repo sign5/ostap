@@ -3,6 +3,21 @@ open Matcher
 open Types
 open Reason
 
+let join = function
+| None   -> fun y -> y
+| Some x -> function None -> Some x | Some y -> Some (x#add y)
+
+let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result =
+  fun res1 res2 ->
+    match res1, res2 with
+    | Parsed ((res, x), opt1), Failed opt2             -> Parsed ((res, x), join opt1 opt2)
+    | Failed opt1,             Parsed ((res, x), opt2) -> Parsed ((res, x), join opt1 opt2)
+    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> failwith "Ambiguous program"
+    | Failed None,             Failed opt2             -> Failed (opt2)
+    | Failed opt1,             Failed opt2             -> Failed (join opt1 opt2)
+    | Empty, _ -> res2
+    | _, Empty -> res1
+   
 let memo_k =
   fun k ->
     let table : ('a * 'stream, ('stream, 'b, 'c) result) Hashtbl.t = Hashtbl.create 16 in
@@ -20,10 +35,6 @@ let memo_k =
         | Empty -> r
         | _ -> Hashtbl.add table (a, s) r; r)
       | Some r -> r
-
-let join = function
-| None   -> fun y -> y
-| Some x -> function None -> Some x | Some y -> Some (x#add y)
 
 let comment str = function
 | None   -> None
@@ -73,9 +84,10 @@ let memoresult =
       else
         (ks := K.add k !ks;
          List.fold_left (fun acc x -> match acc, x with
-                                      | Parsed _, _           -> acc
-                                      | Failed _, Parsed _    -> x
-                                      | Failed _, Failed opt2 -> Failed (opt2)
+                                      | Parsed (r, opt1), Failed opt2 -> Parsed (r, join opt1 opt2)
+                                      | Failed opt1, Parsed (r, opt2) -> Parsed (r, join opt1 opt2)
+                                      | Failed opt1, Failed opt2 -> Failed (join opt1 opt2)
+                                      | Parsed _, _ -> acc
                                       | Empty, _              -> x
                                       | _, Empty              -> acc)
                         Empty

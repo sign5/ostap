@@ -509,7 +509,7 @@ EXTEND
           let cmp = List.fold_right2
                       (fun paramExpr paramExpr' acc ->
                          let tryExpr =
-                           let pwel = [(<:patt< $uid:"Invalid_argument"$ _>>), Ploc.VaVal None, <:expr< $paramExpr$ == $paramExpr'$>>] in
+                           let pwel = [(<:patt< Invalid_argument _ >>), Ploc.VaVal None, <:expr< $paramExpr$ == $paramExpr'$>>] in
                            <:expr< try $paramExpr$ = $paramExpr'$ with [ $list:pwel$ ]>>
                          in
                          <:expr< $acc$ && ($tryExpr$)>>
