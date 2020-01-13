@@ -139,7 +139,7 @@ module Lexers =
       end
 
     class virtual infix s =
-      let regexp = Re_str.regexp "[+*/%$#@!|&^~?<>=\\-]+" in
+      let regexp = Re_str.regexp "[+*/%$#@!|&^~?<>:=\\-]+" in
       object(self : 'self)
         method virtual get : 'b. String.t -> Re_str.regexp -> (Token.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result
         method getINFIX  : 'b. (string -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
