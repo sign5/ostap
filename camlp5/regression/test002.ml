@@ -74,19 +74,19 @@ class lexer (s : string) =
 let id = ostap (x:IDENT "." y:IDENT -EOF {Printf.sprintf "%s.%s" x y})
 
 let _ =
-  begin match id (new lexer " left .right") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer " left .right") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "left.right") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer "left.right") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "left . right") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer "left . right") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "   123 ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer "   123 ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;

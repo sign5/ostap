@@ -74,11 +74,11 @@ class lexer (s : string) =
 let id = ostap (IDENT -EOF)
 
 let _ =
-  begin match id (new lexer "hasToBeParsed") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer "hasToBeParsed") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, s), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match id (new lexer "   123 ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply id (new lexer "   123 ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;

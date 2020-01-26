@@ -446,6 +446,6 @@ let _ =
     | `Parenth x -> "{(" ^ (print x) ^ ")}"
     | `Var x     -> x
   in
-  match lambda (new lexer "^x.^y.y x") (fun res s -> Parsed ((res, s), None)) with
+  match Combinators.Mem.mapply lambda (new lexer "^x.^y.y x") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((res, _), _) -> Printf.printf "Parsed. %s\n" (print res)
   | Failed _ -> Printf.printf "Failed.\n"

@@ -79,19 +79,19 @@ module X =
 class ['a] ppp =
   object (self)
 
-    method list s k (elem:'a) = let ostap (l[elem]: hd:elem tl:(- !(X.parse) elem)* {hd :: tl}) in l s k elem
+    method list = Combinators.Mem.memoize (fun s k (elem:'a) -> let ostap (l[elem]: hd:elem tl:(- !(X.parse) elem)* {hd :: tl}) in Combinators.Mem.mapply l s k elem)
     method m = ostap (!(self#list)[ostap (IDENT)] -EOF)
 
   end
 
 let _ =
   let p = new ppp in
-  begin match p#m (new lexer "r,t , f , g ,     u, i ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply p#m (new lexer "r,t , f , g ,     u, i ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) ->
       Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match p#m (new lexer " abc; def ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply p#m (new lexer " abc; def ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) ->
       Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"

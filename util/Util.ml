@@ -69,6 +69,7 @@ ostap (
   list0: list0By[ostap (",")]
 )
 
+
 let left  f c x y = f (c x) y
 let right f c x y = c (f x y)
 
@@ -86,7 +87,7 @@ let expr f ops opnd =
       ops
   in
   let n      = Array.length ops in
-  let op   i = snd ops.(i)      in
+  let op     = Mem.memoize (fun i -> snd ops.(i)) in
   let nona i = fst ops.(i)      in
   let id   x = x                in
   let ostap (
@@ -102,6 +103,7 @@ let expr f ops opnd =
   in
   ostap (inner[0][id])
 
+
 let read name =
   let inch = open_in_bin name in
   let len  = in_channel_length inch in
@@ -109,6 +111,7 @@ let read name =
   really_input inch buf 0 len;
   close_in inch;
   Bytes.unsafe_to_string buf
+
 
 module Lexers =
   struct
@@ -145,7 +148,7 @@ module Lexers =
         method getINFIX  : 'b. (string -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result =
           fun k -> self#get "decimal constant" regexp (fun t s -> k (Token.repr t) s)
       end
-            
+
     class virtual uident keywords s =
       object inherit genericIdent "[A-Z][a-zA-Z_0-9]*\\b" "u-identifier" keywords s as ident
 	method getUIDENT : 'b. (String.t -> 'self -> ('self, 'b, Reason.t) Types.result) -> ('self, 'b, Reason.t) Types.result = ident#getIdent
@@ -212,7 +215,7 @@ module Lexers =
   end
 
 let parse l p =
-  Combinators.unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
+  unwrap (Mem.mapply (Mem.mapply p l) (fun res s -> Types.Parsed ((res, s), None)))
     (fun x -> `Ok x)
     (fun x ->
       match x with

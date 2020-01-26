@@ -42,6 +42,6 @@ let _ =
     | `EAdd (a, b) -> "E[" ^ (print a) ^ "+" ^ (print b) ^ "]"
     | `ESub (a, b) -> "E[" ^ (print a) ^ "-" ^ (print b) ^ "]"
   in
-  match main (new lexer "1-(2+3)+4") (fun res s -> Parsed ((res, s), None)) with
+  match Combinators.Mem.mapply main (new lexer "1-(2+3)+4") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((b, _), _) -> Printf.printf "Parsed: %s\n" (print b)
   | Failed _ -> Printf.printf "Not parsed:\n"

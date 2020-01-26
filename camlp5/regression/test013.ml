@@ -35,6 +35,6 @@ let _ =
     | `E1 e -> "E[" ^ (print e) ^ "]"
     | `E2 (i, e) -> "E[" ^ (print i) ^ "+" ^ (print e) ^ "]"
   in
-  match main (new lexer "1+2+3") (fun res s -> Parsed ((res, s), None)) with
+  match Combinators.Mem.mapply main (new lexer "1+2+3") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((b, _), _) -> Printf.printf "Parsed: %s\n" (print b)
   | Failed _ -> Printf.printf "Not parsed.\n"

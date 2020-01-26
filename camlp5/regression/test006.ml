@@ -76,13 +76,13 @@ let list = ostap (hd:list  tl:(-";" list)*  {hd :: tl})
 
 let m = ostap (list -EOF)
 let _ =
-  begin match m (new lexer "r,t , f , g ,     u, i; u, g ") (fun res s -> Parsed ((res, s), None))  with
+  begin match Combinators.Mem.mapply m (new lexer "r,t , f , g ,     u, i; u, g ") (fun res s -> Parsed ((res, s), None))  with
   | Parsed ((str, _), _) ->
       Printf.printf "Parsed: %s\n"
 	(List.fold_left (fun s l -> List.fold_left (^) s l) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match m (new lexer " abc; def ") (fun res s -> Parsed ((res, s), None))  with
+  begin match Combinators.Mem.mapply m (new lexer " abc; def ") (fun res s -> Parsed ((res, s), None))  with
   | Parsed ((str, _), _) ->
       Printf.printf "Parsed: %s\n"
 	(List.fold_left (fun s l -> List.fold_left (^) s l) "" str)

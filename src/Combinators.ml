@@ -3,6 +3,36 @@ open Matcher
 open Types
 open Reason
 
+module Mem : sig
+  type marrow
+  val mapply : marrow -> 'a -> 'b
+  val memoize : ('a -> 'b) -> marrow
+  (* val wrap : 'a -> marrow
+  val unwrap: marrow -> 'a *)
+end =
+  struct
+    type marrow = Obj.t
+    let mapply : marrow -> 'a -> 'b = fun m a -> (Obj.magic m) a
+
+    let memoize : ('a -> 'b) -> marrow =
+      fun f -> Obj.magic (
+        (* Printf.printf "Memotable created %d\n" (Obj.magic f); *)
+        let m : ('a * 'b) list ref = ref [] in
+        fun a ->
+          let b = List.find_opt (fun (a', _) -> (a == a')) !m in
+          match b with
+          | Some (_, b) -> b
+          | None -> let b = f a in
+                    (* Printf.printf "New entry in %d\n" (Obj.magic f); *)
+                    m := (a, b) :: !m;
+                    b)
+    (* let wrap : 'a -> marrow =
+      fun param -> Obj.magic param
+
+    let unwrap: marrow -> 'a =
+      fun m -> Obj.magic m *)
+  end
+
 let join = function
 | None   -> fun y -> y
 | Some x -> function None -> Some x | Some y -> Some (x#add y)
@@ -17,7 +47,7 @@ let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b
     | Failed opt1,             Failed opt2             -> Failed (join opt1 opt2)
     | Empty, _ -> res2
     | _, Empty -> res1
-   
+
 let memo_k =
   fun k ->
     let table : ('a * 'stream, ('stream, 'b, 'c) result) Hashtbl.t = Hashtbl.create 16 in
@@ -52,8 +82,10 @@ let map =
 
 let (-->) p f = map f p
 
-let empty =
+let empty' =
   fun s k -> return () s k
+
+let empty = Mem.memoize (empty')
 
 let fail =
  fun r s k -> Failed r
@@ -129,7 +161,7 @@ let opt =
 let (<?>) = opt
 
 let rec manyFold =
-  fun f init p s k -> (empty |> fun _ -> return init) s k <@>
+  fun f init p s k -> (empty' |> fun _ -> return init) s k <@>
                       (p                 |> (fun xp  ->
                        manyFold f init p |> (fun xps ->
                        return (f xp xps)))) s k
@@ -200,7 +232,7 @@ match r with
 | Failed x           -> g x
 
 let altl =
-  fun l -> List.fold_left (<|>) (fail None) l
+  fun l -> Mem.memoize (List.fold_left (<|>) (fail None) (List.map Mem.mapply l))
 
 let comment p str s k =
   match p s k with

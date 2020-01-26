@@ -75,11 +75,11 @@ let list = ostap (hd:IDENT tl:(-"," IDENT)* {hd :: tl})
 let m = ostap (list -EOF)
 
 let _ =
-  begin match m (new lexer "r,t , f , g ,     u, i ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply m (new lexer "r,t , f , g ,     u, i ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failsed.\n"
   end;
-  begin match m (new lexer " abc  ") (fun res s -> Parsed ((res, s), None)) with
+  begin match Combinators.Mem.mapply m (new lexer " abc  ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" (List.fold_left (^) "" str)
   | _ -> Printf.printf "Failed.\n"
   end;
