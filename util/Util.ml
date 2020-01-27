@@ -77,7 +77,7 @@ ostap (
   id[x]: x
 )
 
-let expr f ops opnd =
+let expr = Mem.memoize (fun f -> Mem.memoize (fun ops -> Mem.memoize (fun opnd ->
   let ops =
     Array.map
       (fun (assoc, list) ->
@@ -101,7 +101,7 @@ let expr f ops opnd =
       })]
   )
   in
-  ostap (inner[0][id])
+  ostap (inner[0][id]))))
 
 
 let read name =
