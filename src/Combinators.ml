@@ -18,12 +18,13 @@ end =
       fun f -> Obj.magic (
         let m : ('a * 'b) list option ref = ref None in
         fun a ->
-          let m' = match !m with None -> Printf.printf "Memotable created at %d\n" ((Obj.magic f) mod 10000); [] | Some x -> x in
+          let m' = match !m with None -> (* Printf.printf "Memotable created at %d\n" ((Obj.magic f) mod 10000);*)
+                                         [] | Some x -> x in
           let b = List.find_opt (fun (a', _) -> (a == a')) m' in
           match b with
-          | Some (_, b) -> Printf.printf "HIT Old entry at %d\n" ((Obj.magic f) mod 10000); b
+          | Some (_, b) -> (*Printf.printf "HIT Old entry at %d\n" ((Obj.magic f) mod 10000);*) b
           | None -> let b = f a in
-                    Printf.printf "MISS New entry at %d\n" ((Obj.magic f) mod 10000);
+                    (* Printf.printf "MISS New entry at %d\n" ((Obj.magic f) mod 10000); *)
                     m := Some ((a, b) :: m');
                     b)
     (* let wrap : 'a -> marrow =
