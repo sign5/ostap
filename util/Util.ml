@@ -15,6 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
+
 open Combinators
 open Matcher
 open Printf
@@ -50,8 +51,9 @@ ostap (
 )
 
 ostap (
-  list: listBy[ostap (",")]
+  list : listBy[ostap (",")]
 )
+
 
 ostap (
   list0ByWith[delim][item][f][x]: h:item result:(-delim item) * with{f x h}{f} {result} | empty {x}
@@ -215,7 +217,7 @@ module Lexers =
   end
 
 let parse l p =
-  unwrap (Mem.mapply (Mem.mapply p l) (fun res s -> Types.Parsed ((res, s), None)))
+  unwrap ((Mem.mapply p l) (fun res s -> Types.Parsed ((res, s), None)))
     (fun x -> `Ok x)
     (fun x ->
       match x with

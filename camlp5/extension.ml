@@ -434,8 +434,8 @@ EXTEND
       let f' = <:expr< Ostap.Combinators.Mem.memoize (fun [$list:pwel'$]) >> in
       let pwel = [(<:patt< $lid:"()"$ >>, Ploc.VaVal None, f')] in
       let f = <:expr< fun [$list:pwel$] >> in
-      (match tree with Some tree -> Cache.cache (!printExpr f') tree | None -> ());
-      f'
+      (match tree with Some tree -> Cache.cache (!printExpr <:expr< Ostap.Combinators.Mem.memoize $p$>>) tree | None -> ());
+      <:expr< Ostap.Combinators.Mem.memoize $p$ >>
     ]
   ];
 
@@ -470,13 +470,13 @@ EXTEND
       let outerRules = List.fold_right2 (
         fun (namePatt, paramNum) fakeExpr lets ->
           let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
-          let e' = let e''' = List.fold_left (fun exprAcc paramExpr -> <:expr< (Ostap.Combinators.Mem.mapply $exprAcc$ $paramExpr$) >>) fakeExpr paramExprs in <:expr< $e'''$ $lid:"_s"$>> in
+          let e' = let e''' = List.fold_left (fun exprAcc paramExpr -> <:expr< (Ostap.Combinators.Mem.mapply $exprAcc$ $paramExpr$) >>) fakeExpr paramExprs in e'''(*<:expr< $e'''$ $lid:"_s"$>>*) in
           let e'' = <:expr< let $opt:false$ $list:tupleRule$ in $e'$ >> in
           let finalExpr' = List.fold_right (
             fun paramPatt exprAcc ->
               let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
               <:expr< Ostap.Combinators.Mem.memoize (fun [$list:pwel$]) >>
-          ) paramPatts (let pwel = [(<:patt< $lid:"_s"$>>, Ploc.VaVal None, e'')] in <:expr< fun [$list:pwel$] >>) in
+          ) paramPatts (*let pwel = [(<:patt< $lid:"_s"$>>, Ploc.VaVal None, e'')] in <:expr< fun [$list:pwel$] >>*) e'' in
           let pwel = [(<:patt< $lid:"()"$ >>, Ploc.VaVal None, finalExpr')] in
           let finalExpr = <:expr< fun [$list:pwel$] >> in
         (namePatt, finalExpr') :: lets) namePatts fakeExprs []
