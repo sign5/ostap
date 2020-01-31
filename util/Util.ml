@@ -15,7 +15,6 @@
  * (enclosed in the file COPYING).
  *)
 
-
 open Combinators
 open Matcher
 open Printf
@@ -30,7 +29,6 @@ module Ostap =
 ostap (
   keyword[name]: @(name ^ "\\b" : name)
 )
-
 
 let (~$) = keyword
 
