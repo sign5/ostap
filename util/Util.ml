@@ -69,7 +69,6 @@ ostap (
   list0: list0By[ostap (",")]
 )
 
-
 let left  f c x y = f (c x) y
 let right f c x y = c (f x y)
 
@@ -102,7 +101,6 @@ let expr = Mem.memoize (fun f -> Mem.memoize (fun ops -> Mem.memoize (fun opnd -
   )
   in
   ostap (inner[0][id]))))
-
 
 let read name =
   let inch = open_in_bin name in

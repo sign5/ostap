@@ -394,25 +394,25 @@ EXTEND
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1)(*;
-                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)*)]
+      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1);
+                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)]
       in
       let fakeExprTuple1 =
         match fakeExprs1 with
-        | [x] -> x
-        |  x  -> <:expr< ( $list:x$ ) >>
+        | [x] -> let le = [x; List.hd fakeExprs2] in <:expr< ( $list:le$ ) >>
+        |  _  -> let x = List.map2 (fun expr1 expr2 -> let le = [expr1; expr2] in <:expr< ( $list:le$ ) >>) fakeExprs1 fakeExprs2 in <:expr< ( $list:x$ ) >>
       in
-      let fakeExprTuple2 =
+      (* let fakeExprTuple2 =
         match fakeExprs2 with
         | [x] -> x
         |  x  -> <:expr< ( $list:x$ ) >>
-      in
+      in *)
       let namePattTuple =
         match namePatts with
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in if True then $fakeExprTuple1$ else $fakeExprTuple1$ >>)] in
+      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in $fakeExprTuple1$ >>)] in
       <:str_item< value $opt:false$ $list:outerRules$ >>
     ]
   ];
@@ -426,9 +426,9 @@ EXTEND
   ];
 
   expr: LEVEL "expr1" [
-    [ "ostap"; "("; ((p, _), tree)=o_alternatives; ")" ->
-      (match tree with Some tree -> Cache.cache (!printExpr <:expr< Ostap.Combinators.Mem.memoize $p$>>) tree | None -> ());
-      <:expr< Ostap.Combinators.Mem.memoize $p$ >>
+    [ "ostap"; "("; ((p1, p2), tree)=o_alternatives; ")" ->
+      (match tree with Some tree -> Cache.cache (!printExpr <:expr< Ostap.Combinators.Mem.memoize $p1$>>) tree | None -> ());
+      let le = [<:expr< Ostap.Combinators.Mem.memoize $p1$ >>; p2] in <:expr< ( $list:le$ ) >>
     ]
   ];
 
@@ -468,25 +468,25 @@ EXTEND
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1)(*;
-                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)*)]
+      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1);
+                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)]
       in
       let fakeExprTuple1 =
         match fakeExprs1 with
-        | [x] -> x
-        |  x  -> <:expr< ( $list:x$ ) >>
+        | [x] -> let le = [x; List.hd fakeExprs2] in <:expr< ( $list:le$ ) >>
+        |  _  -> let x = List.map2 (fun expr1 expr2 -> let le = [expr1; expr2] in <:expr< ( $list:le$ ) >>) fakeExprs1 fakeExprs2 in <:expr< ( $list:x$ ) >>
       in
-      let fakeExprTuple2 =
+      (* let fakeExprTuple2 =
         match fakeExprs2 with
         | [x] -> x
         |  x  -> <:expr< ( $list:x$ ) >>
-      in
+      in *)
       let namePattTuple =
         match namePatts with
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in if True then $fakeExprTuple1$ else $fakeExprTuple1$ >>)] in
+      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in $fakeExprTuple1$ >>)] in
       <:expr< let $opt:false$ $list:outerRules$ in $e$ >>
      ]
   ];
@@ -845,11 +845,11 @@ EXTEND
   o_primary: [
     [ (p, s)=o_reference; args=OPT o_parameters ->
           match args with
-             None           -> ((<:expr< (Ostap.Combinators.Mem.mapply $p$) >>, p), Some s)
+             None           -> ((<:expr< (Ostap.Combinators.Mem.mapply (fst $p$)) >>, <:expr< snd $p$ >>), Some s)
            | Some (args, a) ->
 	       let args = args in
-	       let body1 = List.fold_left (fun expr arg -> <:expr< (Ostap.Combinators.Mem.mapply $expr$ $arg$) >>) p args in
-         let body2 = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
+	       let body1 = List.fold_left (fun expr arg -> <:expr< (Ostap.Combinators.Mem.mapply $expr$ $arg$) >>) <:expr< (fst $p$) >> args in
+         let body2 = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) <:expr< (snd $p$) >> args in
 	       ((body1, body2), (Some (Expr.apply s a)))
     ] |
     [ p=UIDENT ->
