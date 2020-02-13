@@ -357,11 +357,11 @@ EXTEND
 
   doc_name: [ [ "["; name=STRING; "]" -> name ] ];
 
-
   str_item: LEVEL "top" [
     [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" ->
-      let (numberOfRules, (fixedRuleExprs1, fixedRuleExprs2), defs, namePatts, (gen_fixBodyWithArgs1, gen_fixBodyWithArgs2), paramNums) = rules in
+      let (fakePatts, fakeExprs, fixedRuleExprs, defs, namePatts, gen_fixBodyWithArgs, paramNums) = rules in
       !printBNF doc (texDefList defs);
+      let rules = List.combine fakePatts fixedRuleExprs in
       let makePattsAndExprs str num =
         let nameSeq =
           let rec loop n =
@@ -372,70 +372,72 @@ EXTEND
         in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
             List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
       in
-      let (fakePatts, fakeExprs) = makePattsAndExprs "_nonrecursiveParser" numberOfRules in
-      let (fakePatts1, fakeExprs1) = makePattsAndExprs "_generatedParser" numberOfRules in
-      let (fakePatts2, fakeExprs2) = makePattsAndExprs "_typeCheckingGeneratedParser" numberOfRules in
-      let insideExprWithFixpoint fixedRuleExprs gen_fixBodyWithArgs =
-        let rules = List.combine fakePatts fixedRuleExprs in
-        let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
-        let fix_gen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
-        let insideExpr = <:expr< let $opt:false$ $list:rules$ in $fix_gen$ >> in
-        <:expr< let $opt:false$ $list:fixPointRule$ in $insideExpr$ >>
-      in
-      let fakeTuplePatt1 =
-        match fakePatts1 with
+      let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
+      let fix_gen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
+      let insideExpr = <:expr< let $opt:false$ $list:rules$ in $fix_gen$ >> in
+      let insideExprWithFixpoint = <:expr< let $opt:false$ $list:fixPointRule$ in $insideExpr$ >> in
+      let nameTuplePatt =
+        match fakePatts with
         | [ ] -> <:patt< () >>
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let fakeTuplePatt2 =
-        match fakePatts2 with
-        | [ ] -> <:patt< () >>
-        | [x] -> x
-        |  x  -> <:patt< ( $list:x$ ) >>
+      let tupleRule = [(nameTuplePatt, insideExprWithFixpoint)] in
+      let namePatts = List.combine namePatts paramNums in
+      let outerRules = List.fold_right2 (
+        fun (namePatt, paramNum) fakeExpr lets ->
+          let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
+          let e' = List.fold_left (fun exprAcc paramExpr -> <:expr< $exprAcc$ $paramExpr$>>) fakeExpr (paramExprs @ [<:expr< $lid:"_s"$>>]) in
+          let e'' = <:expr< let $opt:false$ $list:tupleRule$ in $e'$ >> in
+          let finalExpr = List.fold_right (
+            fun paramPatt exprAcc ->
+              let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+            ) (paramPatts @ [<:patt< $lid:"_s"$>>]) e'' in
+          (namePatt, finalExpr) :: lets) namePatts fakeExprs []
       in
-      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1);
-                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)]
-      in
-      let fakeExprTuple1 =
-        match fakeExprs1 with
-        | [x] -> let le = [x; List.hd fakeExprs2] in <:expr< ( $list:le$ ) >>
-        |  _  -> let x = List.map2 (fun expr1 expr2 -> let le = [expr1; expr2] in <:expr< ( $list:le$ ) >>) fakeExprs1 fakeExprs2 in <:expr< ( $list:x$ ) >>
-      in
-      (* let fakeExprTuple2 =
-        match fakeExprs2 with
-        | [x] -> x
-        |  x  -> <:expr< ( $list:x$ ) >>
-      in *)
-      let namePattTuple =
-        match namePatts with
-        | [x] -> x
-        |  x  -> <:patt< ( $list:x$ ) >>
-      in
-      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in $fakeExprTuple1$ >>)] in
       <:str_item< value $opt:false$ $list:outerRules$ >>
+      (* let lcice = [{ ciLoc = Ploc.dummy;
+                     ciVir = Ploc.VaVal false;
+                     ciPrm = (Ploc.dummy, Ploc.VaVal []);
+                     ciNam = Ploc.VaVal "matcher_stream";
+                     ciExp = <:class_expr< $uid:"Matcher"$ . $lid:"stream"$ >>}] in
+      let lsi = [<:str_item< value $opt:false$ $list:outerRules$ >>;
+                 <:str_item< class $list:lcice$ >>] in
+      <:str_item< declare $list:lsi$ end >> *)
+      (* let lsi = [<:str_item< open $["Matcher"]$ >>;
+                 <:str_item< value $opt:false$ $list:outerRules$ >>] in
+      <:str_item< declare $list:lsi$ end >> *)
     ]
   ];
 
   let_binding: [
     [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" ->
-      let (((name, (rule, _)), def), _) = rule in
+      let (((name, rule), def), _) = rule in
       !printBNF doc (texDef def);
       (<:patt< $lid:name$ >>, rule)
     ]
   ];
 
   expr: LEVEL "expr1" [
-    [ "ostap"; "("; ((p1, p2), tree)=o_alternatives; ")" ->
-      (match tree with Some tree -> Cache.cache (!printExpr <:expr< Ostap.Combinators.Mem.memoize $p1$>>) tree | None -> ());
-      let le = [<:expr< Ostap.Combinators.Mem.memoize $p1$ >>; p2] in <:expr< ( $list:le$ ) >>
+    [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
+      let body = <:expr< $p$ _ostap_stream >> in
+      (* let typ = <:ctyp< # $list:["matcher_stream"]$ >> in *)
+      (* let typ = <:ctyp< $uid:"Matcher"$ . $lid:"stream"$ >> in *)
+      (* let typ = <:ctyp< # $list:["Matcher"; "t"]$ >> in *)
+      (* let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $typ$ ) >>, Ploc.VaVal None, body)] in *)
+      let pwel = [(<:patt< $lid:"_ostap_stream"$ >>, Ploc.VaVal None, body)] in
+      let f = <:expr< fun [$list:pwel$] >> in
+      (match tree with Some tree -> Cache.cache (!printExpr p) tree | None -> ());
+      p
     ]
   ];
 
   expr: LEVEL "expr1" [
     [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
-      let (numberOfRules, (fixedRuleExprs1, fixedRuleExprs2), defs, namePatts, (gen_fixBodyWithArgs1, gen_fixBodyWithArgs2), paramNums) = rules in
+      let (fakePatts, fakeExprs, fixedRuleExprs, defs, namePatts, gen_fixBodyWithArgs, paramNums) = rules in
       !printBNF doc (texDefList defs);
+      let rules = List.combine fakePatts fixedRuleExprs in
       let makePattsAndExprs str num =
         let nameSeq =
           let rec loop n =
@@ -446,47 +448,31 @@ EXTEND
         in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
             List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
       in
-      let (fakePatts, fakeExprs) = makePattsAndExprs "_nonrecursiveParser" numberOfRules in
-      let (fakePatts1, fakeExprs1) = makePattsAndExprs "_generatedParser" numberOfRules in
-      let (fakePatts2, fakeExprs2) = makePattsAndExprs "_typeCheckingGeneratedParser" numberOfRules in
-      let insideExprWithFixpoint fixedRuleExprs gen_fixBodyWithArgs =
-        let rules = List.combine fakePatts fixedRuleExprs in
-        let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
-        let fix_gen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
-        let insideExpr = <:expr< let $opt:false$ $list:rules$ in $fix_gen$ >> in
-        <:expr< let $opt:false$ $list:fixPointRule$ in $insideExpr$ >>
-      in
-      let fakeTuplePatt1 =
-        match fakePatts1 with
+      let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
+      let fix_gen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
+      let insideExpr = <:expr< let $opt:false$ $list:rules$ in $fix_gen$ >> in
+      let insideExprWithFixpoint = <:expr< let $opt:false$ $list:fixPointRule$ in $insideExpr$ >> in
+      (* let nameTuplePatt = <:patt< ($list:fakePatts$) >> in (*!!!*) *)
+      let nameTuplePatt =
+        match fakePatts with
         | [ ] -> <:patt< () >>
         | [x] -> x
         |  x  -> <:patt< ( $list:x$ ) >>
       in
-      let fakeTuplePatt2 =
-        match fakePatts2 with
-        | [ ] -> <:patt< () >>
-        | [x] -> x
-        |  x  -> <:patt< ( $list:x$ ) >>
+      let tupleRule = [(nameTuplePatt, insideExprWithFixpoint)] in
+      let namePatts = List.combine namePatts paramNums in
+      let outerRules = List.fold_right2 (
+        fun (namePatt, paramNum) fakeExpr lets ->
+          let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
+          let e' = List.fold_left (fun exprAcc paramExpr -> <:expr< $exprAcc$ $paramExpr$>>) fakeExpr (paramExprs @ [<:expr< $lid:"_s"$>>]) in
+          let e'' = <:expr< let $opt:false$ $list:tupleRule$ in $e'$ >> in
+          let finalExpr = List.fold_right (
+            fun paramPatt exprAcc ->
+              let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+          ) (paramPatts @ [<:patt< $lid:"_s"$>>]) e'' in
+        (namePatt, finalExpr) :: lets) namePatts fakeExprs []
       in
-      let tupleRule = [(fakeTuplePatt1, insideExprWithFixpoint fixedRuleExprs1 gen_fixBodyWithArgs1);
-                       (fakeTuplePatt2, insideExprWithFixpoint fixedRuleExprs2 gen_fixBodyWithArgs2)]
-      in
-      let fakeExprTuple1 =
-        match fakeExprs1 with
-        | [x] -> let le = [x; List.hd fakeExprs2] in <:expr< ( $list:le$ ) >>
-        |  _  -> let x = List.map2 (fun expr1 expr2 -> let le = [expr1; expr2] in <:expr< ( $list:le$ ) >>) fakeExprs1 fakeExprs2 in <:expr< ( $list:x$ ) >>
-      in
-      (* let fakeExprTuple2 =
-        match fakeExprs2 with
-        | [x] -> x
-        |  x  -> <:expr< ( $list:x$ ) >>
-      in *)
-      let namePattTuple =
-        match namePatts with
-        | [x] -> x
-        |  x  -> <:patt< ( $list:x$ ) >>
-      in
-      let outerRules = [(namePattTuple, <:expr< let $opt:false$ $list:tupleRule$ in $fakeExprTuple1$ >>)] in
       <:expr< let $opt:false$ $list:outerRules$ in $e$ >>
      ]
   ];
@@ -495,8 +481,7 @@ EXTEND
     [ rules=LIST1 o_rule SEP ";" ->
       let (rules, paramNums) = List.split rules in
       let (rules, defs) = List.split rules in
-      let (names, rules) = List.split rules in
-      let (ruleExprs1, ruleExprs2) = List.split rules in
+      let (names, ruleExprs) = List.split rules in
       let namePatts = List.map (fun name -> <:patt< $lid:name$>>) names in
       let makePattsAndExprs str num =
         let nameSeq =
@@ -508,10 +493,14 @@ EXTEND
         in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
             List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
       in
-      let (fakePatts, fakeExprs) = makePattsAndExprs "_nonrecursiveParser" (List.length names) in
+      let (fakePatts, fakeExprs) = makePattsAndExprs "_fakename" (List.length names) in
       let (fixArgPatts, fixArgExprs) = makePattsAndExprs "_f" (List.length names) in
-      let (lazyPatts, lazyExprs) = makePattsAndExprs "_p" (List.length names)in
-      let forcedLazyExprs = List.map (fun lazyExpr -> <:expr< (Lazy.force_val $lazyExpr$) >>) lazyExprs in
+      let (lazyPatts, lazyExprs) = makePattsAndExprs "_p" (List.length names) in
+      let forcedLazyExprs = List.map (
+        fun lazyExpr ->
+          let pwel = [(<:patt< ($lid:"_t"$)>>), Ploc.VaVal None, <:expr< Lazy.force_val $lazyExpr$ ($lid:"_t"$)>>] in
+          <:expr< fun [$list:pwel$]>>) lazyExprs
+      in
       let lazyRules = List.map2 (fun fixArgExpr paramNum ->
           let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
           let (paramPatts', paramExprs') = makePattsAndExprs "_param'" paramNum in
@@ -527,13 +516,14 @@ EXTEND
           let innerMatch =
             let e = <:expr< $lid:"acc"$>> in
             let pwel = [(<:patt< Some _>>, Ploc.VaVal None,     <:expr< $lid:"acc"$>>    );
-                        (<:patt< None>>,   Ploc.VaVal Some cmp, <:expr< Some $lid:"p'"$>>);
-                        (<:patt< _>>,      Ploc.VaVal None,     <:expr< None>>           )] in
+                      (<:patt< None>>,   Ploc.VaVal Some cmp, <:expr< Some $lid:"p'"$>>);
+                      (<:patt< _>>,      Ploc.VaVal None,     <:expr< None>>           )] in
             <:expr< match $e$ with [ $list:pwel$ ] >>
           in
           let folder =
-            let pwel1 = [(<:patt< $lid:"acc"$>>, Ploc.VaVal None, innerMatch)] in
-            let pwel2 = [(<:patt< $lid:"p'"$>>,  Ploc.VaVal None, <:expr< fun [$list:pwel1$]>>)] in
+            let pwel1 = [(<:patt< $lid:"acc"$>>,          Ploc.VaVal None, innerMatch)] in
+            let pwel2 = [(<:patt< $lid:"p'"$>>,           Ploc.VaVal None, <:expr< fun [$list:pwel1$]>>)] in
+            (* let pwel3 = [(<:patt< ($list:paramPatts'$)>>, Ploc.VaVal None, <:expr< fun [$list:pwel2$]>>)] in (*!!!*) *)
             let pwel3 =
               let paramPatts'' =
                 match paramPatts' with
@@ -546,11 +536,11 @@ EXTEND
             <:expr< (fun [$list:pwel3$])>>
           in
           let hashFold = <:expr< (Hashtbl.fold $folder$ $lid:"_table"$ None)>> in
-          let fixArgExpr' = List.fold_left (fun exprAcc forcedLazyExpr -> <:expr< $exprAcc$ ($forcedLazyExpr$)>>) fixArgExpr forcedLazyExprs in
-          let fixArgExpr1 = List.fold_left (fun exprAcc paramExpr -> <:expr< (Ostap.Combinators.Mem.mapply $exprAcc$ $paramExpr$)>>) fixArgExpr' paramExprs in
-          let fixArgExpr2 = List.fold_left (fun exprAcc paramExpr -> <:expr< ($exprAcc$ $paramExpr$)>>) fixArgExpr' paramExprs in
+          let fixArgExpr'' = List.fold_left (fun exprAcc forcedLazyExpr -> <:expr< $exprAcc$ ($forcedLazyExpr$)>>) fixArgExpr forcedLazyExprs in
+          let fixArgExpr' = List.fold_left (fun exprAcc paramExpr -> <:expr< $exprAcc$ $paramExpr$>>) fixArgExpr'' paramExprs in
           let memoBody =
             let r = <:expr< $lid:"_r"$>> in
+            (* let el = [<:expr< Hashtbl.add $lid:"_table"$ ($list:paramExprs$) $r$>>; <:expr< $r$ $lid:"_s"$>>] in (*!!!*) *)
             let el =
               let paramExprs'' =
                 match paramExprs with
@@ -561,47 +551,36 @@ EXTEND
               [<:expr< Hashtbl.add $lid:"_table"$ $paramExprs''$ $r$>>; <:expr< $r$ $lid:"_s"$>>] in
             <:expr< do {$list:el$}>>
           in
-          let outerMatch fixArgExpr =
-            let rules = [(<:patt< $lid:"_r"$>>, fixArgExpr)] in
+          let outerMatch =
+            let rules = [(<:patt< $lid:"_r"$>>, fixArgExpr')] in
             let pwel = [(<:patt< None>>,           Ploc.VaVal None, <:expr< let $opt:false$ $list:rules$ in $memoBody$>>);
                         (<:patt< Some $lid:"x"$>>, Ploc.VaVal None, <:expr< $lid:"x"$ $lid:"_s"$>>)] in
             <:expr< match $hashFold$ with [ $list:pwel$ ]>> in
-          let memoizedRule1 = List.fold_right (
-            fun paramPatt exprAcc ->
-              let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
-              <:expr< Ostap.Combinators.Mem.memoize (fun [$list:pwel$]) >>
-            ) (paramPatts @ [<:patt< $lid:"_s"$>>]) (outerMatch fixArgExpr1) in
-          let memoizedRule2 = List.fold_right (
+          let memoizedRule = List.fold_right (
             fun paramPatt exprAcc ->
               let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
               <:expr< fun [$list:pwel$] >>
-            ) (paramPatts @ [<:patt< $lid:"_s"$>>]) (outerMatch fixArgExpr2) in
-          let fixArgExpr1 =
+            ) (paramPatts @ [<:patt< $lid:"_s"$>>]) outerMatch in
+          let fixArgExpr =
             let rules = [(<:patt< $lid:"_table"$>>), <:expr< Hashtbl.create $int:"16"$>>] in
-            <:expr< let $opt:false$ $list:rules$ in $memoizedRule1$ >>
+            <:expr< let $opt:false$ $list:rules$ in $memoizedRule$>>
           in
-          let fixArgExpr2 =
-            let rules = [(<:patt< $lid:"_table"$>>), <:expr< Hashtbl.create $int:"16"$>>] in
-            <:expr< let $opt:false$ $list:rules$ in $memoizedRule2$ >>
-          in
-          <:expr< lazy ($fixArgExpr1$) >>, <:expr< lazy ($fixArgExpr2$) >>
+          <:expr< lazy ($fixArgExpr$) >>
       ) fixArgExprs paramNums in
-      let lazyRules1, lazyRules2 = List.split lazyRules in
-      let lazyRules1 = List.combine lazyPatts lazyRules1 in
-      let lazyRules2 = List.combine lazyPatts lazyRules2 in
+      let lazyRules = List.combine lazyPatts lazyRules in
       let finalExpr =
         match forcedLazyExprs with
         | [ ] -> <:expr< () >>
         | [x] -> x
         |  x  -> <:expr< ( $list:x$ ) >>
       in
-      let gen_fixBody lazyRules = <:expr< let $opt:true$ $list:lazyRules$ in $finalExpr$ >> in
-      let gen_fixBodyWithArgs lazyRules = List.fold_right (
+      let gen_fixBody = <:expr< let $opt:true$ $list:lazyRules$ in $finalExpr$ >> in
+      let gen_fixBodyWithArgs = List.fold_right (
         fun fixArgPatt exprAcc ->
           let pwel = [(fixArgPatt, Ploc.VaVal None, exprAcc)] in
           <:expr< fun [$list:pwel$] >>
-        ) fixArgPatts (gen_fixBody lazyRules) in
-      let fixedRuleExprs ruleExprs =
+        ) fixArgPatts gen_fixBody in
+      let fixedRuleExprs =
         let makeFixed rule =
           List.fold_right (
             fun namePatt exprAcc ->
@@ -610,26 +589,297 @@ EXTEND
           ) namePatts rule in
         (List.map makeFixed ruleExprs)
       in
-      (List.length names, ((fixedRuleExprs ruleExprs1), fixedRuleExprs ruleExprs2), defs, namePatts, ((gen_fixBodyWithArgs lazyRules1), gen_fixBodyWithArgs lazyRules2), paramNums)
+      (fakePatts, fakeExprs, fixedRuleExprs, defs, namePatts, gen_fixBodyWithArgs, paramNums)
     ]
   ];
 
   o_rule: [
-      [ name=LIDENT; args=OPT o_formal_parameters; ":"; ((p1, p2), tree)=o_alternatives ->
+      [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
+        let args' =
+  	match args with
+  	  None   -> [(*<:patt< (_ostap_stream : #Matcher.t) >>*)]
+  	| Some l -> l @ [(*<:patt< (_ostap_stream : #Matcher.t) >>*)]
+        in
+        let rule =
+  	List.fold_right
+  	  (fun x f ->
+  	    let pwel = [(x, Ploc.VaVal None, f)] in
+  	    <:expr< fun [$list:pwel$] >>
+  	  )
+  	  args'
+  	  <:expr< $p$(* _ostap_stream*) >>
+        in
+        let p = match args with
+              None      -> []
+            | Some args ->
+  	      let args =
+  		List.filter
+  		  (fun p ->
+  		    let idents = get_defined_ident p in
+  		    List.fold_left (fun acc ident -> acc || (Uses.has ident)) false idents
+  		  )
+  		  args
+  	      in
+  	      List.map !printPatt args
+        in
+      let tree =
+         match tree with
+	    None      -> Expr.string ""
+	  | Some tree -> tree
+      in
+      let def =
+          match p with
+	    []   -> Def.make  name tree
+	  | args -> Def.makeP name args tree
+      in
+      Args.clear ();
+      Uses.clear ();
+      (((name, rule), def), List.length args')
+    ]
+  ];
+
+(*
+  str_item: LEVEL "top" [
+    [ "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")" ->
+      let (numberOfRules, rules, defs, namePatts, gen_fixBodiesWithArgs) = rules in
+      let fixedRuleExprs =
+        let makeFixed rule =
+          List.fold_right (
+            fun namePatt exprAcc ->
+              let pwel = [(namePatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+          ) namePatts rule in
+        (List.map makeFixed rules)
+      in
+      !printBNF doc (texDefList defs);
+      let makePattsAndExprs str num =
+        let nameSeq =
+          let rec loop n =
+            if n > num
+            then []
+            else (str ^ (string_of_int n)) :: (loop (n + 1))
+          in loop 1
+        in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
+            List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
+      in
+      let (fakePatts, fakeExprs) = makePattsAndExprs "_nonrecursiveParser" numberOfRules in
+      let (fixPatts, fixExprs) = makePattsAndExprs "_fixedParser" numberOfRules in
+      let fixgens = List.map (fun gen_fixBodyWithArgs ->
+        let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
+        let fixgen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
+        let fixgen = <:expr< $fixgen$ $lid:"_ostap_stream"$ >> in
+        let pwel = [(<:patt< $lid:"_ostap_stream"$>>, Ploc.VaVal None, fixgen)] in
+        <:expr< let $opt:false$ $list:fixPointRule$ in (fun [$list:pwel$]) >>) gen_fixBodiesWithArgs
+      in
+      let rules = (List.combine fakePatts fixedRuleExprs) @ (List.combine fixPatts fixgens) in
+      let fakeExprTuple =
+        match fixExprs with
+        | [x] -> x
+        |  x  -> <:expr< ( $list:x$ ) >>
+      in
+      let namePattTuple =
+        match namePatts with
+        | [x] -> x
+        |  x  -> <:patt< ( $list:x$ ) >>
+      in
+      let outerRules = [(namePattTuple, <:expr< let $opt:true$ $list:rules$ in $fakeExprTuple$ >>)] in
+      <:str_item< value $opt:false$ $list:outerRules$ >>
+    ]
+  ];
+
+  let_binding: [
+    [ "ostap"; doc=OPT doc_name; "("; rule=o_rule; ")" ->
+      let (((name, rule), def), _) = rule in
+      !printBNF doc (texDef def);
+      (<:patt< $lid:name$ >>, rule)
+    ]
+  ];
+
+  expr: LEVEL "expr1" [
+    [ "ostap"; "("; (p, tree)=o_alternatives; ")" ->
+      let body = <:expr< $p$ _ostap_stream >> in
+      let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, body)] in
+      let f = <:expr< fun [$list:pwel$] >> in
+      (match tree with Some tree -> Cache.cache (!printExpr f) tree | None -> ());
+      f
+    ]
+  ];
+
+  expr: LEVEL "expr1" [
+    [ "let"; "ostap"; doc=OPT doc_name; "("; rules=o_rules; ")"; "in"; e=expr LEVEL "top" ->
+      let (numberOfRules, rules, defs, namePatts, gen_fixBodiesWithArgs) = rules in
+      let fixedRuleExprs =
+        let makeFixed rule =
+          List.fold_right (
+            fun namePatt exprAcc ->
+              let pwel = [(namePatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+          ) namePatts rule in
+        (List.map makeFixed rules)
+      in
+      !printBNF doc (texDefList defs);
+      let makePattsAndExprs str num =
+        let nameSeq =
+          let rec loop n =
+            if n > num
+            then []
+            else (str ^ (string_of_int n)) :: (loop (n + 1))
+          in loop 1
+        in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
+            List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
+      in
+      let (fakePatts, fakeExprs) = makePattsAndExprs "_nonrecursiveParser" numberOfRules in
+      let (fixPatts, fixExprs) = makePattsAndExprs "_fixedParser" numberOfRules in
+      let fixgens = List.map (fun gen_fixBodyWithArgs ->
+        let fixPointRule = [(<:patt< $lid:"_generated_fixpoint"$>>, gen_fixBodyWithArgs)] in
+        let fixgen = List.fold_left (fun exprAcc fakeExpr -> <:expr< $exprAcc$ $fakeExpr$ >>) <:expr< _generated_fixpoint >> fakeExprs in
+        let fixgen = <:expr< $fixgen$ $lid:"_ostap_stream"$ >> in
+        let pwel = [(<:patt< $lid:"_ostap_stream"$>>, Ploc.VaVal None, fixgen)] in
+        <:expr< let $opt:false$ $list:fixPointRule$ in (fun [$list:pwel$]) >>) gen_fixBodiesWithArgs
+      in
+      let rules = (List.combine fakePatts fixedRuleExprs) @ (List.combine fixPatts fixgens) in
+      let fakeExprTuple =
+        match fixExprs with
+        | [x] -> x
+        |  x  -> <:expr< ( $list:x$ ) >>
+      in
+      let namePattTuple =
+        match namePatts with
+        | [x] -> x
+        |  x  -> <:patt< ( $list:x$ ) >>
+      in
+      let outerRules = [(namePattTuple, <:expr< let $opt:true$ $list:rules$ in $fakeExprTuple$ >>)] in
+      <:expr< let $opt:false$ $list:outerRules$ in $e$ >>
+     ]
+  ];
+
+  o_rules: [
+    [ rules=LIST1 o_rule SEP ";" ->
+      let (rules, paramNums) = List.split rules in
+      let (rules, defs) = List.split rules in
+      let (names, rules) = List.split rules in
+      let namePatts = List.map (fun name -> <:patt< $lid:name$>>) names in
+      let makePattsAndExprs str num =
+        let nameSeq =
+          let rec loop n =
+            if n > num
+            then []
+            else (str ^ (string_of_int n)) :: (loop (n + 1))
+          in loop 1
+        in (List.map (fun name -> <:patt< ($lid:name$)>>) nameSeq,
+            List.map (fun name -> <:expr< ($lid:name$)>>) nameSeq)
+      in
+      let (fixArgPatts, fixArgExprs) = makePattsAndExprs "_f" (List.length names) in
+      let (lazyPatts, lazyExprs) = makePattsAndExprs "_p" (List.length names) in
+      let forcedLazyExprs = List.map (
+        fun lazyExpr ->
+          let pwel = [(<:patt< ($lid:"_t"$)>>), Ploc.VaVal None, <:expr< Lazy.force_val $lazyExpr$ ($lid:"_t"$)>>] in
+          <:expr< fun [$list:pwel$]>>) lazyExprs
+      in
+      let lazyRules = List.map2 (fun fixArgExpr paramNum ->
+          let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
+          let (paramPatts', paramExprs') = makePattsAndExprs "_param'" paramNum in
+          let cmp = List.fold_right2
+                      (fun paramExpr paramExpr' acc ->
+                         let tryExpr =
+                           let pwel = [(<:patt< Invalid_argument _ >>), Ploc.VaVal None, <:expr< $paramExpr$ == $paramExpr'$>>] in
+                           <:expr< try $paramExpr$ = $paramExpr'$ with [ $list:pwel$ ]>>
+                         in
+                         <:expr< $acc$ && ($tryExpr$)>>
+                       )
+                       paramExprs paramExprs' <:expr< True>> in
+          let innerMatch =
+            let e = <:expr< $lid:"acc"$>> in
+            let pwel = [(<:patt< Some _>>, Ploc.VaVal None,     <:expr< $lid:"acc"$>>    );
+                      (<:patt< None>>,   Ploc.VaVal Some cmp, <:expr< Some $lid:"p'"$>>);
+                      (<:patt< _>>,      Ploc.VaVal None,     <:expr< None>>           )] in
+            <:expr< match $e$ with [ $list:pwel$ ] >>
+          in
+          let folder =
+            let pwel1 = [(<:patt< $lid:"acc"$>>,          Ploc.VaVal None, innerMatch)] in
+            let pwel2 = [(<:patt< $lid:"p'"$>>,           Ploc.VaVal None, <:expr< fun [$list:pwel1$]>>)] in
+            (* let pwel3 = [(<:patt< ($list:paramPatts'$)>>, Ploc.VaVal None, <:expr< fun [$list:pwel2$]>>)] in (*!!!*) *)
+            let pwel3 =
+              let paramPatts'' =
+                match paramPatts' with
+                | [ ] -> <:patt< () >>
+                | [x] -> x
+                |  x  -> <:patt< ( $list:x$ ) >>
+              in
+              [(paramPatts'', Ploc.VaVal None, <:expr< fun [$list:pwel2$]>>)]
+            in
+            <:expr< (fun [$list:pwel3$])>>
+          in
+          let hashFold = <:expr< (Hashtbl.fold $folder$ $lid:"_table"$ None)>> in
+          let fixArgExpr'' = List.fold_left (fun exprAcc forcedLazyExpr -> <:expr< $exprAcc$ ($forcedLazyExpr$)>>) fixArgExpr forcedLazyExprs in
+          let fixArgExpr' = List.fold_left (fun exprAcc paramExpr -> <:expr< $exprAcc$ $paramExpr$>>) fixArgExpr'' paramExprs in
+          let memoBody =
+            let r = <:expr< $lid:"_r"$>> in
+            (* let el = [<:expr< Hashtbl.add $lid:"_table"$ ($list:paramExprs$) $r$>>; <:expr< $r$ $lid:"_s"$>>] in (*!!!*) *)
+            let el =
+              let paramExprs'' =
+                match paramExprs with
+                | [ ] -> <:expr< () >>
+                | [x] -> x
+                |  x  -> <:expr< ( $list:x$ ) >>
+              in
+              [<:expr< Hashtbl.add $lid:"_table"$ $paramExprs''$ $r$>>; <:expr< $r$ $lid:"_s"$>>] in
+            <:expr< do {$list:el$}>>
+          in
+          let outerMatch =
+            let rules = [(<:patt< $lid:"_r"$>>, fixArgExpr')] in
+            let pwel = [(<:patt< None>>,           Ploc.VaVal None, <:expr< let $opt:false$ $list:rules$ in $memoBody$>>);
+                        (<:patt< Some $lid:"x"$>>, Ploc.VaVal None, <:expr< $lid:"x"$ $lid:"_s"$>>)] in
+            <:expr< match $hashFold$ with [ $list:pwel$ ]>> in
+          let memoizedRule = List.fold_right (
+            fun paramPatt exprAcc ->
+              let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+            ) (paramPatts @ [<:patt< $lid:"_s"$>>]) outerMatch in
+          let fixArgExpr =
+            let rules = [(<:patt< $lid:"_table"$>>), <:expr< Hashtbl.create $int:"16"$>>] in
+            <:expr< let $opt:false$ $list:rules$ in $memoizedRule$>>
+          in
+          <:expr< lazy ($fixArgExpr$) >>
+      ) fixArgExprs paramNums in
+      let lazyRules = List.combine lazyPatts lazyRules in
+      (* let lazyRules = List.map2 (fun fixArgExpr paramNum ->
+          let (paramPatts, paramExprs) = makePattsAndExprs "_param" paramNum in
+          let fixArgExpr = List.fold_left (fun exprAcc lazyExpr -> <:expr< $exprAcc$ $lazyExpr$ >>) fixArgExpr lazyExprs in
+          let fixArgExpr = List.fold_left (fun exprAcc paramExpr -> <:expr< $exprAcc$ $paramExpr$ >>) fixArgExpr paramExprs in
+          let fixArgExpr = <:expr< $fixArgExpr$ $lid:"_ostap_stream"$>> in
+          let memoizedRule = List.fold_right (
+            fun paramPatt exprAcc ->
+              let pwel = [(paramPatt, Ploc.VaVal None, exprAcc)] in
+              <:expr< fun [$list:pwel$] >>
+            ) (paramPatts @ [<:patt< $lid:"_ostap_stream"$>>]) fixArgExpr in
+          memoizedRule
+      ) fixArgExprs paramNums in *)
+      let gen_fixBody lazyExpr = <:expr< let $opt:true$ $list:lazyRules$ in $lazyExpr$ >> in
+      let gen_fixBodiesWithArgs = List.map (fun lazyExpr -> List.fold_right (
+        fun fixArgPatt exprAcc ->
+          let pwel = [(fixArgPatt, Ploc.VaVal None, exprAcc)] in
+          <:expr< fun [$list:pwel$] >>
+        ) fixArgPatts (gen_fixBody lazyExpr)) forcedLazyExprs in
+      (List.length names, rules, defs, namePatts, gen_fixBodiesWithArgs)
+    ]
+  ];
+
+  o_rule: [
+      [ name=LIDENT; args=OPT o_formal_parameters; ":"; (p, tree)=o_alternatives ->
         let args' =
           match args with
-            None   -> []
-          | Some l -> l
+            None   -> [(*<:patt< _ostap_stream >>*)]
+          | Some l -> l(* @ [<:patt< _ostap_stream >>]*)
         in
-        let (rule1, rule2) =
+        let rule =
   	      List.fold_right
-  	        (fun x (f1, f2) ->
-  	          let pwel1 = [(x, Ploc.VaVal None, f1)] in
-              let pwel2 = [(x, Ploc.VaVal None, f2)] in
-  	          <:expr< Ostap.Combinators.Mem.memoize (fun [$list:pwel1$]) >>, <:expr< (fun [$list:pwel2$]) >>
+  	        (fun x f ->
+  	          let pwel = [(x, Ploc.VaVal None, f)] in
+  	          <:expr< (fun [$list:pwel$]) >>
   	        )
             args'
-            (<:expr< $p1$>>, <:expr< $p2$>>)
+            (* <:expr< $p$ _ostap_stream >> *) p
         in
         let p =
           match args with
@@ -657,10 +907,10 @@ EXTEND
         in
         Args.clear ();
         Uses.clear ();
-        ((name, (rule1, rule2)), def), List.length args'
+        ((name, rule), def), List.length args' - 1
       ]
   ];
-
+ *)
   o_formal_parameters: [ [ p=LIST1 o_formal_parameter -> p ]];
 
   o_formal_parameter: [
@@ -683,14 +933,14 @@ EXTEND
         in
           match
             List.fold_right
-              (fun (item1, item2) expr ->
+              (fun item expr ->
                 match expr with
-                  None -> Some (item1, item2)
-                | Some (expr1, expr2) -> Some (<:expr< Ostap.Combinators.alt $item1$ $expr1$ >>, <:expr< Ostap.Combinators.alt $item2$ $expr2$ >>)
+                  None -> Some item
+                | Some expr -> Some <:expr< Ostap.Combinators.alt $item$ $expr$ >>
               ) p None
           with
             None        -> raise (Failure "internal error --- must not happen")
-          | Some (x, y) -> ((x, y), match trees with [] -> None | _ -> Some (Expr.alt trees))
+          | Some x -> (x, match trees with [] -> None | _ -> Some (Expr.alt trees))
     ]
   ];
 
@@ -713,7 +963,7 @@ EXTEND
         | None ->
           let (tuple, _) =
             List.fold_right
-              (fun (_, omit, _, (_, _)) ((acc, i) as x) ->
+              (fun (_, omit, _, _) ((acc, i) as x) ->
                 if omit then x else (<:expr< $lid:"_" ^ (string_of_int i)$>> :: acc, i+1)
               )
               p
@@ -725,10 +975,10 @@ EXTEND
           |  _  -> (<:expr< ($list:tuple$) >>, true)
       in
       match List.fold_right
-        (fun (flag, omit, binding, (p1, p2)) rightPart ->
-          let (p1, p2) =
+        (fun (flag, omit, binding, p) rightPart ->
+          let p =
              match flag with
-               None -> (p1, p2)
+               None -> p
              | Some (f, r) ->
                let pwel =
                  match binding with
@@ -737,9 +987,7 @@ EXTEND
 		           in
 		             let pfun = <:expr< fun [$list:pwel$] >> in
 		             match r with
-		               None ->
-                     let t p = <:expr< Ostap.Combinators.guard $p$ $pfun$ None >> in
-                     ((t p1), t p2)
+		               None -> <:expr< Ostap.Combinators.guard $p$ $pfun$ None >>
 		             | Some r ->
 			             let pwel =
 			               match binding with
@@ -747,35 +995,30 @@ EXTEND
 			               | Some p -> [(<:patt< $p$ >>, Ploc.VaVal None, r)]
                    in
                      let rfun = <:expr< fun [$list:pwel$] >> in
-                     let t p = <:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >> in
-                     ((t p1), t p2)
+                     <:expr< Ostap.Combinators.guard $p$ $pfun$ (Some $rfun$) >>
           in
-          let (n, (right1, right2), combi, isMap) =
+          let (n, right, combi, isMap) =
             match rightPart with
-              None -> (0, (s, s), (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
+              None -> (0, s, (fun x y -> <:expr< Ostap.Combinators.map $y$ $x$>>), true)
             | Some (right, n) -> (n, right, (fun x y -> <:expr< Ostap.Combinators.seq $x$ $y$>>), false)
           in
           if not isSema && not omit && isMap && binding = None
-          then Some ((p1, p2), n+1)
+          then Some (p, n+1)
           else
             let patt = match binding with None -> <:patt< _ >> | Some patt -> patt in
             let (patt, n) = if not omit then (<:patt< ($patt$ as $lid:"_" ^ (string_of_int n)$) >>, n+1) else (patt, n) in
-            let pwel1     = [(patt, Ploc.VaVal None, right1)] in
-            let pwel2     = [(patt, Ploc.VaVal None, right2)] in
-            let sfun1     = <:expr< fun [$list:pwel1$] >> in
-            let sfun2     = <:expr< fun [$list:pwel2$] >> in
-            Some (((combi p1 sfun1), combi p2 sfun2), n)
+            let pwel     = [(patt, Ploc.VaVal None, right)] in
+            let sfun     = <:expr< fun [$list:pwel$] >> in
+            Some ((combi p sfun), n)
          ) p None
       with
-        Some ((expr1, expr2), _) ->
+        Some (expr, _) ->
         (match g with
-           None   -> ((expr1, expr2), trees)
+           None   -> (expr, trees)
          | Some (g, None) ->
-           let t expr = <:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty' (fun _ -> $g$) None) (fun _ -> $expr$) >> in
-           ((t expr1), t expr2), trees
+           <:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) None) (fun _ -> $expr$) >>, trees
          | Some (g, Some r) ->
-           let t expr = <:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty' (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >> in
-           ((t expr1), t expr2), trees
+           <:expr< Ostap.Combinators.seq (Ostap.Combinators.guard Ostap.Combinators.empty (fun _ -> $g$) (Some (fun _ -> $r$))) (fun _ -> $expr$) >>, trees
         )
       | None -> raise (Failure "internal error: empty list must not be eaten")
     ]
@@ -794,46 +1037,45 @@ EXTEND
       let fl = [("regexp", methodType)] in
       let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
       let pwel   = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
-      let e1 = <:expr<fun [$list:pwel$]>> in
-      let e2 = <:expr<fun [$list:pwel$]>> in
+      let e = <:expr<fun [$list:pwel$]>> in
       let s  = Some (Expr.string (!printExpr name)) in
-      ((None, true, None, (e1, e2)), s)
+      ((None, true, None, e), s)
     ] |
     [ m=OPT "-"; (p, s)=o_basic ->
-       let (binding, (p1, p2), f) = p in
-       ((f, (m <> None), binding, (p1, p2)), s)
+       let (binding, p, f) = p in
+       ((f, (m <> None), binding, p), s)
     ]
   ];
 
   o_basic: [
-    [ p=OPT o_binding; ((e1, e2), s)=o_postfix; f=OPT o_predicate -> ((p, (e1, e2), f), s) ]
+    [ p=OPT o_binding; (e, s)=o_postfix; f=OPT o_predicate -> ((p, e, f), s) ]
   ];
 
   o_postfix: [
     [ o_primary ] |
-    [ ((e1, e2), s)=o_postfix; "*"; folding=OPT o_folding ->
-      let post e =
+    [ (e, s)=o_postfix; "*"; folding=OPT o_folding ->
+      let post =
         match folding with
         | None                -> <:expr< Ostap.Combinators.many     $e$ >>
         | Some (init, folder) -> <:expr< Ostap.Combinators.manyFold $folder$ $init$ $e$ >>
       in
-      ((post e1), post e2), bindOption s (fun s -> Expr.star s)
+      post, bindOption s (fun s -> Expr.star s)
     ] |
-    [ ((e1, e2), s)=o_postfix; "+"; folding=OPT o_folding ->
-      let post e =
+    [ (e, s)=o_postfix; "+"; folding=OPT o_folding ->
+      let post =
         match folding with
          | None -> <:expr< Ostap.Combinators.some $e$ >>
          | Some (init, folder) -> <:expr< Ostap.Combinators.someFold $folder$ $init$ $e$ >>
       in
-      ((post e1), post e2), bindOption s (fun s -> Expr.plus s)
+      post, bindOption s (fun s -> Expr.plus s)
     ] |
-    [ ((e1, e2), s)=o_postfix; "?" ->
-      let post e = <:expr< Ostap.Combinators.opt $e$ >> in
-      ((post e1), post e2), bindOption s (fun s -> Expr.opt s)
+    [ (e, s)=o_postfix; "?" ->
+      let post = <:expr< Ostap.Combinators.opt $e$ >> in
+      post, bindOption s (fun s -> Expr.opt s)
     ] |
-    [ ((e1, e2), s)=o_postfix; "::"; "("; c=expr; ")" ->
-      let post e = <:expr< Ostap.Combinators.comment $e$ ($c$) >> in
-      ((post e1), post e2), s
+    [ (e, s)=o_postfix; "::"; "("; c=expr; ")" ->
+      let post = <:expr< Ostap.Combinators.comment $e$ ($c$) >> in
+      post, s
     ]
   ];
 
@@ -845,25 +1087,26 @@ EXTEND
   o_primary: [
     [ (p, s)=o_reference; args=OPT o_parameters ->
           match args with
-             None           -> ((<:expr< (Ostap.Combinators.Mem.mapply (fst $p$)) >>, <:expr< snd $p$ >>), Some s)
+             None           -> (p, Some s)
            | Some (args, a) ->
-	       let args = args in
-	       let body1 = List.fold_left (fun expr arg -> <:expr< (Ostap.Combinators.Mem.mapply $expr$ $arg$) >>) <:expr< (fst $p$) >> args in
-         let body2 = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) <:expr< (snd $p$) >> args in
-	       ((body1, body2), (Some (Expr.apply s a)))
+  	       (* let args = args @ [<:expr< _ostap_stream >>] in *)
+           let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
+           let body = <:expr< (Ostap.Combinators.HashCons.lookup_obj $body$) >> in
+           (* let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, <:expr< (Ostap.Combinators.HashCons.lookup_obj $body$) >>)] in *)
+  	       (* <:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)) *)
+           body, (Some (Expr.apply s a))
     ] |
     [ p=UIDENT ->
-            let p' = "get" ^ p in
-            let look = <:expr< _ostap_stream # $p'$ >> in
-            let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
-            let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
-            let contType = <:ctyp< '$"a" ^ p$ -> '$"self"$ -> $resType$ >> in
-            let methodType = <:ctyp< ! $list:["b"]$ . $contType$ -> $resType$ >> in
-            let fl = [(p', methodType)] in
-            let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
-            let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
-            let t = <:expr<fun [$list:pwel$]>> in
-            ((t, t), Some (Expr.term p))
+          let p' = "get" ^ p in
+          let look = <:expr< _ostap_stream # $p'$ >> in
+          let resType' = <:ctyp< $uid:"Types"$ . $lid:"result"$ >> in
+          let resType = <:ctyp< $resType'$ '$"self"$ '$"b"$ '$"c"$ >> in
+          let contType = <:ctyp< '$"a" ^ p$ -> '$"self"$ -> $resType$ >> in
+          let methodType = <:ctyp< ! $list:["b"]$ . $contType$ -> $resType$ >> in
+          let fl = [(p', methodType)] in
+          let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
+          let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
+          <:expr<fun [$list:pwel$]>>, Some (Expr.term p)
     ] |
     [ p=STRING ->
           let look = <:expr< _ostap_stream # look $str:p$ >> in
@@ -875,8 +1118,7 @@ EXTEND
           let fl = [("look", methodType)] in
           let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
           let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
-          let t = <:expr<fun [$list:pwel$]>> in
-          ((t, t), Some (Expr.string p))
+          <:expr<fun [$list:pwel$]>>, Some (Expr.string p)
     ] |
     [ "$"; "("; p=expr; ")" ->
           let look = <:expr< _ostap_stream # look ($p$) >> in
@@ -888,8 +1130,7 @@ EXTEND
           let fl = [("look", methodType)] in
           let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
           let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
-          let t = <:expr<fun [$list:pwel$]>> in
-          ((t, t), Some (Expr.string (!printExpr p)))
+          <:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p))
     ] |
     [ "@"; "("; p=expr; n=OPT o_regexp_name; ")" ->
           let name = match n with None -> p | Some p -> p in
@@ -902,11 +1143,12 @@ EXTEND
           let fl = [("regexp", methodType)] in
           let classType = <:ctyp< < $list:fl$ .. > as '$"self"$>> in
           let pwel = [(<:patt< ( $lid:"_ostap_stream"$ : $classType$ ) >>, Ploc.VaVal None, look)] in
-          let t = <:expr<fun [$list:pwel$]>> in
-          ((t, t), Some (Expr.string (!printExpr p)))
+          <:expr<fun [$list:pwel$]>>, Some (Expr.string (!printExpr p))
     ] |
-    [ "$" -> let t = <:expr< Ostap.Combinators.lift >> in ((t, t), None) ] |
-    [ "("; ((p1, p2), s)=o_alternatives; ")" -> ((p1, p2), bindOption s (fun s -> Expr.group s)) ]
+    [ "$" -> <:expr< Ostap.Combinators.lift >>, None
+    ] |
+    [ "("; (p, s)=o_alternatives; ")" -> (p, bindOption s (fun s -> Expr.group s))
+    ]
   ];
 
   o_regexp_name: [[ ":"; e=expr -> e ]];

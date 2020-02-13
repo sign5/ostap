@@ -15,6 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
+
 open Combinators
 open Matcher
 open Printf
@@ -52,7 +53,6 @@ ostap (
   list : listBy[ostap (",")]
 )
 
-
 ostap (
   list0ByWith[delim][item][f][x]: h:item result:(-delim item) * with{f x h}{f} {result} | empty {x}
 )
@@ -76,7 +76,7 @@ ostap (
   id[x]: x
 )
 
-let expr = Mem.memoize (fun f -> Mem.memoize (fun ops -> Mem.memoize (fun opnd ->
+let expr f ops opnd =
   let ops =
     Array.map
       (fun (assoc, list) ->
@@ -86,21 +86,21 @@ let expr = Mem.memoize (fun f -> Mem.memoize (fun ops -> Mem.memoize (fun opnd -
       ops
   in
   let n      = Array.length ops in
-  let op     = Mem.memoize (fun i -> snd ops.(i)) in
+  let op   i = snd ops.(i)      in
   let nona i = fst ops.(i)      in
   let id   x = x                in
   let ostap (
-    inner[l][c]: f[ostap (
+    inner[l][c]: !(f (ostap (
       {n = l                } => x:opnd {c x}
-    | {n > l && not (nona l)} => x:inner[l+1][id] b:(-o:op[l] inner[l][o c x])? {
+    | {n > l && not (nona l)} => x:inner[l+1][id] b:(-o:!(op l) inner[l][o c x])? {
         match b with None -> c x | Some x -> x
       }
-    | {n > l && nona l} => x:inner[l+1][id] b:(op[l] inner[l+1][id])? {
+    | {n > l && nona l} => x:inner[l+1][id] b:(!(op l) inner[l+1][id])? {
         c (match b with None -> x | Some (o, y) -> o id x y)
-      })]
+      })))
   )
   in
-  ostap (inner[0][id]))))
+  ostap (inner[0][id])
 
 let read name =
   let inch = open_in_bin name in
@@ -213,7 +213,7 @@ module Lexers =
   end
 
 let parse l p =
-  unwrap ((Mem.mapply p l) (fun res s -> Types.Parsed ((res, s), None)))
+  unwrap (p l (fun res s -> Types.Parsed ((res, s), None)))
     (fun x -> `Ok x)
     (fun x ->
       match x with

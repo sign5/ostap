@@ -3,13 +3,164 @@ open Matcher
 open Types
 open Reason
 
+module HashCons :
+  sig
+
+    type t
+
+    val lookup_obj : 'a -> 'a
+    val dump       : 'a -> string
+    val clear      : unit -> unit
+
+  end =
+  struct
+    open Obj
+
+    exception Leave of int
+
+    let dump_inner x =
+      let buffer = Buffer.create 1024 in
+      let append = Buffer.add_string buffer in
+      let rec inner offset x =
+        append offset;
+        let offset = "  " ^ offset in
+        if is_int x then (append "int: "; append (string_of_int @@ magic x); append "\n")
+        else
+          let t = tag x in
+          if t <= last_non_constant_constructor_tag || t = closure_tag
+          then (
+            if t = closure_tag
+            then append (Printf.sprintf "closure @ %x <\n" @@ magic x)
+            else append (Printf.sprintf "tag %d @ %x <\n" t (magic x));
+            for i = 0 to size x - 1 do
+              append (Printf.sprintf "%dth field: " i);
+              inner offset (field x i)
+            done;
+            append ">\n"
+          )
+          else if t = out_of_heap_tag then append (Printf.sprintf "out_of_heap: %x\n" @@ magic x)
+          else append (Printf.sprintf "unsupported tag %d @ %x\n" t (magic x))
+      in
+      inner "" (repr x);
+      Buffer.contents buffer
+
+    let dump x = dump_inner (repr x)
+
+    let rec compare_obj x y =
+      if x == y
+      then 0
+      else (
+        if is_int x
+        then
+          if is_int y
+          then (Obj.magic x) - (Obj.magic y)
+          else -1
+        else
+          if is_int y
+          then 1
+          else (
+            let lx, ly = size x, size y in
+            let tx, ty = tag x, tag y in
+            if lx = ly
+            then
+              if tx = ty
+              then (
+                if tx = string_tag || tx = double_tag || tx = double_array_tag
+                then compare x y
+                else
+                  if tx = object_tag
+                  then compare (magic x) (magic y)
+                  else
+                    if tx <= last_non_constant_constructor_tag || tx = closure_tag
+                    then
+                      try
+                        for i = 0 to lx - 1 do
+                          let fx, fy = field x i, field y i in
+                          let c =
+                            if tx = closure_tag
+                            then
+                              if i = lx - 1
+                              then (magic fx) - (magic fy)
+                              else if tag fx = out_of_heap_tag
+                                   then 0
+                                   else compare_obj fx fy
+                            else compare_obj fx fy
+                          in
+                          if c <> 0 then raise (Leave c)
+                        done;
+                        0
+                      with Leave c -> c
+                    else
+                      if tx = out_of_heap_tag || tx = infix_tag || tx = forward_tag || tx = lazy_tag
+                      then (Obj.magic x) - (Obj.magic y)
+                      else
+                        if tx = lazy_tag
+                        then compare_obj (field x 0) (field y 0)
+                        else
+                          invalid_arg (Printf.sprintf "compare_obj: invalid tag %d\n" tx)
+              )
+              else tx - ty
+            else lx - ly
+          )
+      )
+
+    module M = Map.Make (struct type t = Obj.t let compare = compare_obj end)
+
+    type t = Obj.t M.t ref
+
+    let m = ref M.empty
+
+    let clear () = m := M.empty
+
+    let rec lookup_inner v =
+      (*
+        Printf.printf "Looking up: %s\n" (dump v);
+        Printf.printf "Binginds:\n";
+        List.iter (fun (x, y) -> Printf.printf "  key: %s\n  value: %s\n" (dump x) (dump y)) (M.bindings !m);
+        Printf.printf "\n";
+      *)
+      try M.find v !m with
+        Not_found -> (
+          (* Printf.printf "Not_found :\n %s\n===============\n\n" (dump v); *)
+          let vr = repr v in
+          if is_int vr
+          then (m := M.add v v !m; v)
+          else (
+            let t = tag vr  in
+            if t = string_tag || t = double_tag || t = double_array_tag
+            then (m := M.add v v !m; v)
+            else if t <= last_non_constant_constructor_tag || t = closure_tag
+            then (
+              let l   = size vr in
+              let vr' = dup vr in
+              for i = 0 to l - 1 do
+                if i <> 0 || t <> closure_tag
+                then set_field vr' i (lookup_inner (field vr' i))
+              done;
+              m := M.add v vr' !m;
+              vr'
+            )
+            else
+              if t = out_of_heap_tag || t = object_tag || t = infix_tag || t = lazy_tag  || t = forward_tag || t = lazy_tag
+              then (m := M.add v v !m; v)
+              else
+                if t = lazy_tag
+                then lookup_inner (field v 0)
+                else
+                  invalid_arg (Printf.sprintf "lookup_obj: invalid tag %d\n" t)
+      ))
+
+    let lookup_obj v = magic @@ lookup_inner (repr v)
+
+  end
+
 module Mem : sig
   type marrow
   val mapply : marrow -> 'a -> 'b
   val memoize : ('a -> 'b) -> marrow
   (* val wrap : 'a -> marrow
   val unwrap: marrow -> 'a *)
-end =
+  end =
   struct
     type marrow = Obj.t
     let mapply : marrow -> 'a -> 'b = fun m a -> (Obj.magic m) a
@@ -43,7 +194,7 @@ let (<@>) : ('stream, 'b, 'c) result -> ('stream, 'b, 'c) result -> ('stream, 'b
     match res1, res2 with
     | Parsed ((res, x), opt1), Failed opt2             -> Parsed ((res, x), join opt1 opt2)
     | Failed opt1,             Parsed ((res, x), opt2) -> Parsed ((res, x), join opt1 opt2)
-    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> failwith "Ambiguous program"
+    | Parsed ((res, x), opt1), Parsed ((_, _), opt2)   -> Parsed ((res, x), join opt1 opt2)
     | Failed None,             Failed opt2             -> Failed (opt2)
     | Failed opt1,             Failed opt2             -> Failed (join opt1 opt2)
     | Empty, _ -> res2
@@ -83,10 +234,8 @@ let map =
 
 let (-->) p f = map f p
 
-let empty' =
+let empty =
   fun s k -> return () s k
-
-let empty = Mem.memoize (empty')
 
 let fail =
  fun r s k -> Failed r
@@ -162,7 +311,7 @@ let opt =
 let (<?>) = opt
 
 let rec manyFold =
-  fun f init p s k -> (empty' |> fun _ -> return init) s k <@>
+  fun f init p s k -> (empty |> fun _ -> return init) s k <@>
                       (p                 |> (fun xp  ->
                        manyFold f init p |> (fun xps ->
                        return (f xp xps)))) s k
@@ -224,16 +373,16 @@ let guard =
     p s (memo_k (fun a s -> if f a
                             then k a s
                             else Failed (match r with
-                                         | None -> None
+                                         | None   -> None
                                          | Some r -> Some (r a))))
 
 let unwrap r f g =
-match r with
-| Parsed ((x, _), _) -> f x
-| Failed x           -> g x
+  match r with
+  | Parsed ((x, _), _) -> f x
+  | Failed x           -> g x
 
 let altl =
-  fun l -> Mem.memoize (List.fold_left (<|>) (fail None) (List.map Mem.mapply l))
+  fun l -> List.fold_left (<|>) (fail None) l
 
 let comment p str s k =
   match p s k with

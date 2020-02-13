@@ -41,7 +41,7 @@ let _ =
     | `E2 (i, e) -> "E[" ^ (print i) ^ "+" ^ (print e) ^ "]"
   in
   let run input =
-    match Combinators.Mem.mapply main (new lexer input) (fun res s -> Parsed ((res, s), None)) with
+    match main (new lexer input) (fun res s -> Parsed ((res, s), None)) with
     | Parsed ((b, _), _) -> Printf.printf "Parsed: %s\n" (print b)
     | Failed _ -> Printf.printf "Not parsed:\n"
   in

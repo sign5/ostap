@@ -15,6 +15,7 @@
  * (enclosed in the file COPYING).
  *)
 
+
 open Re_str
 open Ostap
 open Types
@@ -71,16 +72,15 @@ class lexer (s : string) =
         else emptyResult
   end
 
-(* let rec br = ostap (IDENT | "(" b:br ")" {Printf.sprintf "(%s)" b}) *)
-ostap (br : IDENT | "(" b:br ")" {Printf.sprintf "(%s)" b})
+let rec br x = ostap (IDENT | "(" b:br ")" {Printf.sprintf "(%s)" b}) x
 let m = ostap (br -EOF)
 
 let _ =
-  begin match Combinators.Mem.mapply m (new lexer " left ") (fun res s -> Parsed ((res, s), None)) with
+  begin match m (new lexer " left ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
-  begin match Combinators.Mem.mapply m (new lexer " ( abc ) ") (fun res s -> Parsed ((res, s), None)) with
+  begin match m (new lexer " ( abc ) ") (fun res s -> Parsed ((res, s), None)) with
   | Parsed ((str, _), _) -> Printf.printf "Parsed: %s\n" str
   | _ -> Printf.printf "Failed.\n"
   end;
