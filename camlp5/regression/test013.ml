@@ -57,33 +57,33 @@ let rec expr f =
 
 (* ostap (main : !(expr id) -EOF) *)
 
-let default =
+(* let default =
   [| `Righta, ((fun x -> x+1, 1), [":=", (fun x -> x+1), (fun _ _ _ -> 1)]) |]
 
 let right f c x a y = c (f x a y)
+let ops ops' =
+  Array.map
+    (fun (assoc, (atrs, list)) ->
+      let g = match assoc with `Righta -> right in
+      assoc = `Righta, (atrs, altl (List.map (fun (oper, sema) -> ostap (!(oper) {g sema})) list))
+    )
+    ops'
+let op ops' = snd (snd ops'.(0))
+  let id x = x
+let expr ops' opnd atr =
+  let ostap ( inner[atr]: x:opnd[atr] o:!(op (ops ops')) y:opnd[atr] {o id x atr y})
+  in
+  ostap (inner[atr]) *)
 
-let expr ops opnd atr =
-  let ops =
-    Array.map
-      (fun (assoc, (atrs, list)) ->
-        let g = match assoc with `Righta -> right in
-        assoc = `Righta, (atrs, altl (List.map (fun (oper, sema) -> ostap (!(oper) {g sema})) list))
-      )
-      ops
-  in
-  let op   = snd (snd ops.(0)) in
-  let id x = x                in
-  let ostap ( inner[atr]: x:opnd[atr] o:op y:opnd[atr] {o id x atr y})
-  in
-  ostap (inner[atr])
+(* ostap (
+  alt[t1][t2] : t1 | t2;
+  pparse[a][atr]: !(expr (Array.map (fun (a, (atr, l)) -> a, (atr, List.map (fun (s, _, f) -> ostap (- $(s)), f) l)) default) (primary[a]) atr);
+  primary[a][atr]: alt[ostap(CONST)][ostap(CONST)]
+) *)
 
 ostap (
-  pparse[atr]: !(expr (Array.map (fun (a, (atr, l)) -> a, (atr, List.map (fun (s, _, f) -> ostap (- $(s)), f) l)) default) (primary) atr);
-  primary[atr]: CONST
-)
-
-ostap (
-  main: !(pparse 1)? {["is"]}
+  alt[t1][t2] : t1 | t2;
+  main: alt[ostap(CONST)][ostap(CONST)]
 )
 
 let _ =

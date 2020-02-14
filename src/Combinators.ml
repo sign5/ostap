@@ -46,14 +46,14 @@ module HashCons :
 
     let dump x = dump_inner (repr x)
 
-    let rec compare_obj x y =
-      if x == y
+    let rec compare_inner x y ancx ancy =
+      if x == y || List.exists (fun (x', y') -> x == x' && y == y') (List.combine ancx ancy)
       then 0
       else (
         if is_int x
         then
           if is_int y
-          then (Obj.magic x) - (Obj.magic y)
+          then (Stdlib.Obj.magic x) - (Stdlib.Obj.magic y)
           else -1
         else
           if is_int y
@@ -76,6 +76,7 @@ module HashCons :
                       try
                         for i = 0 to lx - 1 do
                           let fx, fy = field x i, field y i in
+                          let fxs, fys = List.init (size x) (field x), List.init (size y) (field y) in
                           let c =
                             if tx = closure_tag
                             then
@@ -83,19 +84,19 @@ module HashCons :
                               then (magic fx) - (magic fy)
                               else if tag fx = out_of_heap_tag
                                    then 0
-                                   else compare_obj fx fy
-                            else compare_obj fx fy
+                                   else compare_inner fx fy (x::ancx) (y::ancy)
+                            else compare_inner fx fy (x::ancx) (y::ancy)
                           in
                           if c <> 0 then raise (Leave c)
                         done;
                         0
                       with Leave c -> c
                     else
-                      if tx = out_of_heap_tag || tx = infix_tag || tx = forward_tag || tx = lazy_tag
-                      then (Obj.magic x) - (Obj.magic y)
+                      if tx = out_of_heap_tag || tx = infix_tag || tx = forward_tag
+                      then (Stdlib.Obj.magic x) - (Stdlib.Obj.magic y)
                       else
                         if tx = lazy_tag
-                        then compare_obj (field x 0) (field y 0)
+                        then compare_inner (field x 0) (field y 0) (x::ancx) (y::ancy)
                         else
                           invalid_arg (Printf.sprintf "compare_obj: invalid tag %d\n" tx)
               )
@@ -103,6 +104,8 @@ module HashCons :
             else lx - ly
           )
       )
+
+    let compare_obj x y = compare_inner x y [] []
 
     module M = Map.Make (struct type t = Obj.t let compare = compare_obj end)
 

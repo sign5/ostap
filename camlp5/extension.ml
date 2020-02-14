@@ -1091,7 +1091,7 @@ EXTEND
            | Some (args, a) ->
   	       (* let args = args @ [<:expr< _ostap_stream >>] in *)
            let body = List.fold_left (fun expr arg -> <:expr< $expr$ $arg$ >>) p args in
-           let body = <:expr< (Ostap.Combinators.HashCons.lookup_obj $body$) >> in
+           (* let body = <:expr< (Ostap.Combinators.HashCons.lookup_obj $body$) >> in *)
            (* let pwel = [(<:patt< _ostap_stream >>, Ploc.VaVal None, <:expr< (Ostap.Combinators.HashCons.lookup_obj $body$) >>)] in *)
   	       (* <:expr< fun [$list:pwel$] >>, (Some (Expr.apply s a)) *)
            body, (Some (Expr.apply s a))
