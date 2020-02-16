@@ -70,7 +70,7 @@ class lexer (s : string) =
         then k "EOF" {< p = p >}
         else emptyResult
   end
-
+  
 ostap (
   list[elem] : hd:elem tl:(-"," elem)* {hd :: tl};
   m : list[ostap (IDENT)] -EOF
