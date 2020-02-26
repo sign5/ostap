@@ -25,3 +25,5 @@ depends: [
   "GT"
   "re"
 ]
+
+synopsis: "ostap package for opam"
