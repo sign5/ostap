@@ -27,3 +27,5 @@ depends: [
 ]
 
 synopsis: "ostap package for opam"
+
+description: "ostap package for opam"
